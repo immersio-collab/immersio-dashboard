@@ -266,6 +266,37 @@ export function LeadDetailCard({
     };
   }
 
+  function handleRelanceDateChange(relanceNum: 1 | 2 | 3, newDateStr: string) {
+    if (!newDateStr) {
+      setFormData((prev) => ({ ...prev, [`relance${relanceNum}Auto`]: "" }));
+      setSaveStatus("idle");
+      return;
+    }
+
+    const base = new Date(newDateStr);
+    if (isNaN(base.getTime())) return;
+
+    const add = (d: number) => {
+      const nd = new Date(base);
+      nd.setDate(nd.getDate() + d);
+      return nd.toISOString();
+    };
+
+    setFormData((prev) => {
+      const next = { ...prev, [`relance${relanceNum}Auto`]: base.toISOString() } as Lead;
+      
+      if (relanceNum === 1) {
+        if (!next.relance2Fait) next.relance2Auto = add(2);
+        if (!next.relance3Fait) next.relance3Auto = add(6);
+      } else if (relanceNum === 2) {
+        if (!next.relance3Fait) next.relance3Auto = add(4);
+      }
+      
+      return next;
+    });
+    setSaveStatus("idle");
+  }
+
   function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
     setFormData((prev) => {
       const today = new Date().toISOString();
@@ -930,9 +961,12 @@ export function LeadDetailCard({
                       <span className="text-xs text-text-subtle">
                         Relance {num}
                       </span>
-                      <span className="text-xs text-text-muted">
-                        {value ? (fmtDateForInput(value as string) || (value as string)) : "—"}
-                      </span>
+                      <input
+                        type="date"
+                        value={fmtDateForInput(value as string)}
+                        onChange={(e) => handleRelanceDateChange(num as 1 | 2 | 3, e.target.value)}
+                        className="input-base text-xs h-7 px-2 bg-transparent hover:bg-surface-muted transition-colors cursor-pointer w-[120px]"
+                      />
                       <div className="flex items-center gap-1.5">
                         <RelanceVariationsModal
                           relanceType={`relance${num}` as "relance1" | "relance2" | "relance3"}
