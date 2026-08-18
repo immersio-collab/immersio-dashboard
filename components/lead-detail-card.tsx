@@ -291,6 +291,12 @@ export function LeadDetailCard({
       } else if (relanceNum === 2) {
         if (!next.relance3Fait) next.relance3Auto = add(4);
       }
+
+      // Si la date de relance est > à la date de dernier contact (dateDeEchange)
+      const currentExchangeTime = next.dateDeEchange ? new Date(next.dateDeEchange).getTime() : 0;
+      if (base.getTime() > currentExchangeTime) {
+        next.dateDeEchange = base.toISOString();
+      }
       
       return next;
     });
