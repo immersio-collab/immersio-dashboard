@@ -223,7 +223,7 @@ function SortTh({
   return (
     <th
       className={[
-        "px-3 py-2.5 text-left whitespace-nowrap",
+        "px-2 sm:px-3 py-2 sm:py-2.5 text-left whitespace-nowrap",
         className,
       ].join(" ")}
       aria-sort={
@@ -371,6 +371,9 @@ export function LeadsTable({
     // Statut filter
     if (filterStatuts.length > 0) {
       result = result.filter((l) => filterStatuts.includes(l.statut));
+    } else {
+      // Masquer les leads "Perdu" par défaut (sauf s'ils sont explicitement demandés via le filtre)
+      result = result.filter((l) => l.statut !== "Perdu");
     }
 
     // Suivi filter
@@ -772,7 +775,7 @@ export function LeadsTable({
                   onClick={() => setIsSuiviDropdownOpen(false)}
                   aria-hidden="true"
                 />
-                <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-border rounded-md shadow-lg z-20 py-1.5 max-h-64 overflow-auto">
+                <div className="absolute bottom-full left-0 mb-1 w-56 bg-surface border border-border rounded-md shadow-lg z-20 py-1.5 max-h-64 overflow-auto">
                   {SUIVI_OPTIONS.map((opt) => {
                     const isChecked = filterSuivi.includes(opt.id);
                     return (
@@ -972,7 +975,7 @@ export function LeadsTable({
                     currentKey={sortKey}
                     dir={sortDir}
                     onSort={toggleSort}
-                    className="pl-4"
+                    className="pl-2 sm:pl-4"
                   />
                   <SortTh
                     label="Statut"
@@ -981,7 +984,7 @@ export function LeadsTable({
                     dir={sortDir}
                     onSort={toggleSort}
                   />
-                  <th className="px-3 py-2.5 text-left text-xs font-medium text-text-muted whitespace-nowrap">
+                  <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs font-medium text-text-muted whitespace-nowrap">
                     Ville
                   </th>
                   <SortTh
@@ -990,8 +993,9 @@ export function LeadsTable({
                     currentKey={sortKey}
                     dir={sortDir}
                     onSort={toggleSort}
+                    className="hidden sm:table-cell"
                   />
-                  <th className="px-3 py-2.5 text-left text-xs font-medium text-text-muted w-14">
+                  <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs font-medium text-text-muted w-12 sm:w-14">
                     <span className="sr-only">Alertes</span>
                   </th>
                 </tr>
@@ -1075,14 +1079,14 @@ export function LeadsTable({
                         }}
                       >
                         {/* Nom */}
-                        <td className="px-3 py-2.5 pl-4 font-medium text-text max-w-[200px]">
+                        <td className="px-2 sm:px-3 py-2 sm:py-2.5 pl-2 sm:pl-4 font-medium text-text max-w-[120px] sm:max-w-[200px]">
                           <div className="flex flex-col gap-0.5">
                             <span className="truncate">{lead.nom || "—"}</span>
                             {hasRappel && (
                               <div className="flex items-center gap-1 mt-0.5">
                                 <span
                                   className={[
-                                    "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-medium truncate max-w-[190px]",
+                                    "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-medium truncate max-w-[110px] sm:max-w-[190px]",
                                     isDue
                                       ? "bg-rose-50 text-rose-700 border-rose-200"
                                       : isToday
@@ -1092,7 +1096,7 @@ export function LeadsTable({
                                   title={`${fmtRappelDateTime(lead.rappelDate)}${lead.rappelNote ? ` · ${lead.rappelNote}` : ""}`}
                                 >
                                   <CalendarClock size={10} className="flex-shrink-0" />
-                                  <span className="font-semibold">{fmtRappelDateTime(lead.rappelDate)}</span>
+                                  <span className="font-semibold whitespace-nowrap">{fmtRappelDateTime(lead.rappelDate)}</span>
                                   {lead.rappelNote && (
                                     <span className="truncate opacity-85">· {lead.rappelNote}</span>
                                   )}
@@ -1102,7 +1106,7 @@ export function LeadsTable({
                           </div>
                         </td>
                         {/* Statut */}
-                        <td className="px-3 py-2.5">
+                        <td className="px-2 sm:px-3 py-2 sm:py-2.5">
                           {lead.statut ? (
                             <span
                               className={[
@@ -1120,15 +1124,15 @@ export function LeadsTable({
                           )}
                         </td>
                         {/* Ville */}
-                        <td className="px-3 py-2.5 text-text-muted text-xs">
+                        <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-text-muted text-xs truncate max-w-[60px] sm:max-w-none">
                           {lead.ville || "—"}
                         </td>
                         {/* Date formulaire */}
-                        <td className="px-3 py-2.5 text-text-muted tabular-nums whitespace-nowrap text-xs">
+                        <td className="hidden sm:table-cell px-2 sm:px-3 py-2 sm:py-2.5 text-text-muted tabular-nums whitespace-nowrap text-xs">
                           {fmtDate(lead.dateFormulaire)}
                         </td>
                         {/* Alert badges & First contact */}
-                        <td className="px-3 py-2.5 text-right w-14">
+                        <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-right w-12 sm:w-14">
                           <div className="flex items-center justify-end gap-1.5">
                             {lead.statut === "Nouveau" && (
                               <RelanceVariationsModal
