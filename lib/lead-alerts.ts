@@ -70,12 +70,13 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
   const alerts: LeadAlert[] = [];
 
   // ── 1. Relance en retard ─────────────────────────────────────────────────
-  // Si le statut est "Gagné", aucune relance n'est considérée en retard
-  const isGagne =
+  // Si le statut est "Gagné" ou "Perdu", aucune relance n'est considérée en retard
+  const isGagneOrPerdu =
     lead.statut?.toLowerCase() === "gagné" ||
-    lead.statut?.toLowerCase() === "gagne";
+    lead.statut?.toLowerCase() === "gagne" ||
+    lead.statut?.toLowerCase() === "perdu";
 
-  if (!isGagne) {
+  if (!isGagneOrPerdu) {
     const relanceDates: Array<{
       label: string;
       value: string;

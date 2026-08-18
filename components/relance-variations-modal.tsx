@@ -10,6 +10,11 @@ import {
 } from "lucide-react";
 
 export const RELANCE_MESSAGES = {
+  nouveau: [
+    "Bonjour, je vous contacte suite à votre demande concernant une visite virtuelle 360° pour votre activité. Je suis disponible pour vous présenter le concept et répondre à vos questions, par téléphone ou WhatsApp, selon ce qui vous arrange le mieux.",
+    "Bonjour, merci pour votre intérêt pour nos visites virtuelles 360°. Je reviens vers vous rapidement pour comprendre votre projet et voir comment on peut vous accompagner. Un appel de quelques minutes vous conviendrait-il ?",
+    "Bonjour, je fais suite à votre demande sur notre service de visite virtuelle 360°. Je serais ravi d'en discuter avec vous pour voir ce qui correspond le mieux à votre activité. N'hésitez pas à me dire quand vous êtes disponible.",
+  ],
   relance1: [
     "Bonjour, je reviens vers vous concernant votre projet de visite virtuelle 360°. Je reste disponible si vous avez des questions ou besoin de précisions. À bientôt !",
     "Bonjour, petit rappel concernant notre échange sur la visite virtuelle 360° pour votre activité. N'hésitez pas si vous souhaitez qu'on en discute davantage.",
@@ -30,6 +35,10 @@ export const RELANCE_MESSAGES = {
 export type RelanceType = keyof typeof RELANCE_MESSAGES;
 
 const RELANCE_LABELS: Record<RelanceType, { title: string; subtitle: string }> = {
+  nouveau: {
+    title: "Premier contact",
+    subtitle: "Messages de prise de contact pour les nouveaux leads",
+  },
   relance1: {
     title: "Relance 1",
     subtitle: "Premier rappel post-formulaire / premier contact",
@@ -50,12 +59,14 @@ export interface RelanceVariationsModalProps {
   relanceType: RelanceType;
   phoneNumber?: string;
   className?: string;
+  customTrigger?: React.ReactNode;
 }
 
 export function RelanceVariationsModal({
   relanceType,
   phoneNumber,
   className = "",
+  customTrigger,
 }: RelanceVariationsModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -103,15 +114,30 @@ export function RelanceVariationsModal({
   return (
     <>
       {/* Trigger button beside the toggle */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={`p-1 rounded text-text-muted hover:text-text hover:bg-surface-muted border border-border/60 hover:border-border transition-colors inline-flex items-center justify-center ${className}`}
-        title={`Voir les variations de message (${info.title})`}
-        aria-label={`Voir les variations de message pour ${info.title}`}
-      >
-        <MessageSquare size={13} className="text-text-muted" aria-hidden="true" />
-      </button>
+      {customTrigger ? (
+        <div 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            setIsOpen(true); 
+          }}
+          className="inline-flex cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          {customTrigger}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(true);
+          }}
+          className={`p-1 rounded text-text-muted hover:text-text hover:bg-surface-muted border border-border/60 hover:border-border transition-colors inline-flex items-center justify-center ${className}`}
+          title={`Voir les variations de message (${info.title})`}
+          aria-label={`Voir les variations de message pour ${info.title}`}
+        >
+          <MessageSquare size={13} className="text-text-muted" aria-hidden="true" />
+        </button>
+      )}
 
       {/* Modal Dialog */}
       {isOpen && (

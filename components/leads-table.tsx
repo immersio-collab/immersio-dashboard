@@ -16,11 +16,15 @@ import {
   Plus,
   Users,
   Bell,
+  MessageCircle,
+  RotateCcw,
 } from "lucide-react";
 import type { Lead, LeadAlert, LeadAlertKind } from "@/types";
 import { getLeadAlerts } from "@/lib/lead-alerts";
 import { LeadDetailCard } from "@/components/lead-detail-card";
 import { LeadCreateModal } from "@/components/lead-create-modal";
+import { RelanceVariationsModal } from "@/components/relance-variations-modal";
+import type { RelanceType } from "@/components/relance-variations-modal";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -61,6 +65,13 @@ const TYPE_BIEN_OPTIONS = [
   "Ecole",
   "Bureau",
   "Autre",
+] as const;
+
+const SUIVI_OPTIONS = [
+  { id: "appelTelephonique", label: "Appel tél." },
+  { id: "contacteSurWhatsapp", label: "WhatsApp" },
+  { id: "devisEnvoye", label: "Devis envoyé" },
+  { id: "demoEnvoye", label: "Démo envoyée" },
 ] as const;
 
 const VILLE_OPTIONS = [
@@ -110,16 +121,40 @@ function fmtDate(iso: string): string {
 // Alert badges (in table row)
 // ---------------------------------------------------------------------------
 
-function AlertBadges({ alerts }: { alerts: LeadAlert[] }) {
+function AlertBadges({ lead, alerts }: { lead: Lead; alerts: LeadAlert[] }) {
   if (alerts.length === 0) return null;
   return (
     <div className="flex items-center gap-1">
       {alerts.map((a) => {
         const { icon: Icon, title, colorClass } = ALERT_META[a.kind];
+
+        if (a.kind === "relance-en-retard") {
+          const match = a.message?.match(/Relance (\d)/i);
+          const rNum = match ? match[1] : "1";
+          const relanceType = `relance${rNum}` as RelanceType;
+
+          return (
+            <RelanceVariationsModal
+              key={a.kind}
+              relanceType={relanceType}
+              phoneNumber={lead.telephone}
+              customTrigger={
+                <span
+                  title={a.message || title}
+                  aria-label={title}
+                  className="inline-flex items-center hover:scale-125 transition-transform duration-200"
+                >
+                  <Icon size={12} className={colorClass} aria-hidden="true" />
+                </span>
+              }
+            />
+          );
+        }
+
         return (
           <span
             key={a.kind}
-            title={title}
+            title={a.message || title}
             aria-label={title}
             className="inline-flex items-center"
           >
@@ -209,6 +244,8 @@ export function LeadsTable({
   const [filterCanal, setFilterCanal] = useState("");
   const [filterVille, setFilterVille] = useState("");
   const [filterTypeBien, setFilterTypeBien] = useState("");
+  const [filterSuivi, setFilterSuivi] = useState<string[]>([]);
+  const [isSuiviDropdownOpen, setIsSuiviDropdownOpen] = useState(false);
   const [showDoublons, setShowDoublons] = useState(false);
   const [showNouveaux, setShowNouveaux] = useState(
     !initialFilter || initialFilter === "nouveaux"
@@ -292,6 +329,15 @@ export function LeadsTable({
       result = result.filter((l) => filterStatuts.includes(l.statut));
     }
 
+    // Suivi filter
+    if (filterSuivi.length > 0) {
+      result = result.filter((l) => {
+        return filterSuivi.every(
+          (key) => l[key as keyof Lead] === "Oui"
+        );
+      });
+    }
+
     // Canal filter
     if (filterCanal) {
       result = result.filter((l) => l.canal === filterCanal);
@@ -353,6 +399,7 @@ export function LeadsTable({
     filterCanal,
     filterVille,
     filterTypeBien,
+    filterSuivi,
     showDoublons,
     showNouveaux,
     showEnRetard,
@@ -591,6 +638,81 @@ export function LeadsTable({
               </option>
             ))}
           </select>
+
+          {/* Suivi filter */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsSuiviDropdownOpen(!isSuiviDropdownOpen)}
+              className="bg-surface border border-border hover:bg-surface-muted transition-colors rounded-md text-sm h-9 px-3 flex items-center justify-between gap-2 min-w-[160px]"
+              aria-label="Filtrer par actions de suivi"
+            >
+              <span className="truncate max-w-[130px]">
+                {filterSuivi.length === 0
+                  ? "Toutes actions"
+                  : filterSuivi.length === 1
+                  ? SUIVI_OPTIONS.find((o) => o.id === filterSuivi[0])?.label
+                  : `${filterSuivi.length} actions`}
+              </span>
+              <ChevronDown size={14} className="text-text-subtle flex-shrink-0" aria-hidden="true" />
+            </button>
+            
+            {isSuiviDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsSuiviDropdownOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-border rounded-md shadow-lg z-20 py-1.5 max-h-64 overflow-auto">
+                  {SUIVI_OPTIONS.map((opt) => {
+                    const isChecked = filterSuivi.includes(opt.id);
+                    return (
+                      <label
+                        key={opt.id}
+                        className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-surface-muted cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setFilterSuivi((prev) =>
+                              prev.includes(opt.id)
+                                ? prev.filter((x) => x !== opt.id)
+                                : [...prev, opt.id]
+                            );
+                          }}
+                          className="rounded border-border text-accent focus:ring-accent w-3.5 h-3.5 flex-shrink-0"
+                        />
+                        <span className="truncate">{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Reset button */}
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setFilterStatuts([]);
+              setFilterCanal("");
+              setFilterVille("");
+              setFilterTypeBien("");
+              setFilterSuivi([]);
+              setShowDoublons(false);
+              setShowNouveaux(false);
+              setShowEnRetard(false);
+            }}
+            className="h-9 w-9 flex items-center justify-center rounded-md text-text-subtle hover:text-text hover:bg-surface-muted border border-border transition-colors flex-shrink-0"
+            title="Réinitialiser tous les filtres"
+            aria-label="Réinitialiser tous les filtres"
+          >
+            <RotateCcw size={14} aria-hidden="true" />
+          </button>
         </div>
 
         {/* Bottom Row: Quick Toggles & Action */}
@@ -839,9 +961,26 @@ export function LeadsTable({
                         <td className="px-3 py-2.5 text-text-muted tabular-nums whitespace-nowrap text-xs">
                           {fmtDate(lead.dateFormulaire)}
                         </td>
-                        {/* Alert badges */}
-                        <td className="px-3 py-2.5">
-                          <AlertBadges alerts={alerts} />
+                        {/* Alert badges & First contact */}
+                        <td className="px-3 py-2.5 text-right w-14">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {lead.statut === "Nouveau" && (
+                              <RelanceVariationsModal
+                                relanceType="nouveau"
+                                phoneNumber={lead.telephone}
+                                customTrigger={
+                                  <span
+                                    title="Premier contact"
+                                    aria-label="Premier contact"
+                                    className="inline-flex items-center text-blue-500 hover:text-blue-600 hover:scale-125 transition-all duration-200"
+                                  >
+                                    <MessageCircle size={13} aria-hidden="true" />
+                                  </span>
+                                }
+                              />
+                            )}
+                            <AlertBadges lead={lead} alerts={alerts} />
+                          </div>
                         </td>
                       </tr>
                     );

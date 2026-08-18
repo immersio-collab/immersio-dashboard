@@ -240,11 +240,20 @@ export function LeadDetailCard({
   function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
     setFormData((prev) => {
       const today = new Date().toISOString();
-      return {
+      const next = {
         ...prev,
         [`relance${relanceNum}Fait`]: checked,
-        dateDeEchange: checked ? today : lead.dateDeEchange,
-      };
+      } as Lead;
+      
+      if (checked) {
+        next.dateDeEchange = today;
+        return updateRelances(next, today);
+      } else {
+        // When unchecking, revert dateDeEchange to the last saved state
+        next.dateDeEchange = lead.dateDeEchange;
+        const baseDate = lead.dateDeEchange || lead.dateFormulaire || today;
+        return updateRelances(next, baseDate);
+      }
     });
     setSaveStatus("idle");
   }
