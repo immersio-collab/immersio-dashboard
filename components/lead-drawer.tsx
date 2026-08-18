@@ -149,16 +149,43 @@ export function LeadDrawer({
   }, [onClose]);
 
   function handleChange(key: keyof Lead, value: any) {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "dateDeEchange" && value) {
+        return updateRelances(next as Lead, value);
+      }
+      return next;
+    });
     setSaveStatus("idle");
   }
 
-  function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
-    setFormData((prev) => ({
+  function updateRelances(prev: Lead, newDateStr: string) {
+    const base = new Date(newDateStr);
+    if (isNaN(base.getTime())) return prev;
+    
+    const add = (d: number) => {
+      const nd = new Date(base);
+      nd.setDate(nd.getDate() + d);
+      return nd.toISOString();
+    };
+    
+    return {
       ...prev,
-      [`relance${relanceNum}Fait`]: checked,
-      ...(checked ? { dateDeEchange: new Date().toISOString() } : {}),
-    }));
+      relance1Auto: prev.relance1Fait ? prev.relance1Auto : add(1),
+      relance2Auto: prev.relance2Fait ? prev.relance2Auto : add(3),
+      relance3Auto: prev.relance3Fait ? prev.relance3Auto : add(7),
+    };
+  }
+
+  function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
+    setFormData((prev) => {
+      const today = new Date().toISOString();
+      return {
+        ...prev,
+        [`relance${relanceNum}Fait`]: checked,
+        dateDeEchange: checked ? today : lead.dateDeEchange,
+      };
+    });
     setSaveStatus("idle");
   }
 
@@ -178,6 +205,9 @@ export function LeadDrawer({
       "ville",
       "typeDeBien",
       "canal",
+      "relance1Auto",
+      "relance2Auto",
+      "relance3Auto",
       "relance1Fait",
       "relance2Fait",
       "relance3Fait",
@@ -393,7 +423,7 @@ export function LeadDrawer({
                   <div key={num} className="grid grid-cols-[140px_1fr_auto] gap-2 items-center">
                     <label className="text-xs text-text-subtle">Relance {num}</label>
                     <div className="text-xs text-text-muted">
-                      {lead[autoKey] ? fmtDateForInput(lead[autoKey] as string) : "—"}
+                      {formData[autoKey] ? (fmtDateForInput(formData[autoKey] as string) || (formData[autoKey] as string)) : "—"}
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input

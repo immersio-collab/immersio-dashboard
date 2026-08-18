@@ -103,11 +103,8 @@ export async function updateLead(
     throw new LeadsError(`Supabase error: ${fetchError.message}`);
   }
 
-  // If dateDeEchange is provided and valid, recalculate relance dates
-  if (fields.dateDeEchange) {
-    calculateRelanceDates(fields.dateDeEchange, existingLead as Partial<Lead>, fields);
-  }
-
+  // Frontend now handles the recalculation logic when dateDeEchange is manually changed,
+  // and sends the updated relanceXAuto fields. We just save them.
   const sanitizedFields = sanitizeFieldsForDb(fields);
   const { error } = await supabase
     .from("leads")

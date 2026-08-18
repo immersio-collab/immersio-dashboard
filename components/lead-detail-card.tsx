@@ -213,16 +213,43 @@ export function LeadDetailCard({
   }, [lead]);
 
   function handleChange(key: keyof Lead, value: any) {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "dateDeEchange" && value) {
+        return updateRelances(next as Lead, value);
+      }
+      return next;
+    });
     setSaveStatus("idle");
   }
 
-  function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
-    setFormData((prev) => ({
+  function updateRelances(prev: Lead, newDateStr: string) {
+    const base = new Date(newDateStr);
+    if (isNaN(base.getTime())) return prev;
+    
+    const add = (d: number) => {
+      const nd = new Date(base);
+      nd.setDate(nd.getDate() + d);
+      return nd.toISOString();
+    };
+    
+    return {
       ...prev,
-      [`relance${relanceNum}Fait`]: checked,
-      ...(checked ? { dateDeEchange: new Date().toISOString() } : {}),
-    }));
+      relance1Auto: prev.relance1Fait ? prev.relance1Auto : add(1),
+      relance2Auto: prev.relance2Fait ? prev.relance2Auto : add(3),
+      relance3Auto: prev.relance3Fait ? prev.relance3Auto : add(7),
+    };
+  }
+
+  function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
+    setFormData((prev) => {
+      const today = new Date().toISOString();
+      return {
+        ...prev,
+        [`relance${relanceNum}Fait`]: checked,
+        dateDeEchange: checked ? today : lead.dateDeEchange,
+      };
+    });
     setSaveStatus("idle");
   }
 
@@ -249,6 +276,9 @@ export function LeadDetailCard({
       "prixProposeMAD",
       "dateDeEchange",
       "notes",
+      "relance1Auto",
+      "relance2Auto",
+      "relance3Auto",
       "relance1Fait",
       "relance2Fait",
       "relance3Fait",
@@ -694,7 +724,7 @@ export function LeadDetailCard({
                   const autoKey = `relance${num}Auto` as keyof Lead;
                   const faitKey = `relance${num}Fait` as keyof Lead;
                   const isChecked = Boolean(formData[faitKey]);
-                  const value = lead[autoKey];
+                  const value = formData[autoKey];
                   
                   return (
                     <div
@@ -705,7 +735,7 @@ export function LeadDetailCard({
                         Relance {num}
                       </span>
                       <span className="text-xs text-text-muted">
-                        {value ? fmtDateForInput(value as string) : "—"}
+                        {value ? (fmtDateForInput(value as string) || (value as string)) : "—"}
                       </span>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
