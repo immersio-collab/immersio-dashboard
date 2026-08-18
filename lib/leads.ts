@@ -8,7 +8,14 @@
 import { getSupabaseClient } from "@/lib/supabase";
 import type { Lead } from "@/types";
 
-export { getLeadAlerts } from "@/lib/lead-alerts";
+export { 
+  getLeadAlerts,
+  isRappelDue,
+  isRappelToday,
+  hasActiveRappel,
+  getRappelStatus,
+  type RappelStatus
+} from "@/lib/lead-alerts";
 
 // ---------------------------------------------------------------------------
 // Error type
@@ -52,6 +59,7 @@ function sanitizeFieldsForDb(fields: Partial<Lead>) {
     "relance1Auto",
     "relance2Auto",
     "relance3Auto",
+    "rappelDate",
   ];
   for (const field of dateFields) {
     if (sanitized[field] === "") {
@@ -138,9 +146,10 @@ export async function createLead(fields: Partial<Lead>): Promise<any> {
   const sanitizedFields = sanitizeFieldsForDb(fields);
   
   // Create a minimal new lead if no ID is provided, typically clients should pass leadId
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const leadToInsert = {
     ...sanitizedFields,
-    leadId: sanitizedFields.leadId || `L-${Date.now()}`, 
+    leadId: sanitizedFields.leadId || `l:${Date.now()}${randomSuffix}`, 
     archive: "Non",
     relance1Fait: false,
     relance2Fait: false,

@@ -18,9 +18,17 @@ import {
   Bell,
   MessageCircle,
   RotateCcw,
+  CalendarClock,
+  Calendar,
 } from "lucide-react";
 import type { Lead, LeadAlert, LeadAlertKind } from "@/types";
-import { getLeadAlerts } from "@/lib/lead-alerts";
+import { 
+  getLeadAlerts,
+  hasActiveRappel,
+  isRappelDue,
+  isRappelToday,
+  getRappelStatus,
+} from "@/lib/lead-alerts";
 import { LeadDetailCard } from "@/components/lead-detail-card";
 import { LeadCreateModal } from "@/components/lead-create-modal";
 import { RelanceVariationsModal } from "@/components/relance-variations-modal";
@@ -90,6 +98,11 @@ const ALERT_META: Record<
   LeadAlertKind,
   { icon: React.ElementType; title: string; colorClass: string }
 > = {
+  "rappel-du": {
+    icon: CalendarClock,
+    title: "Rendez-vous / Rappel dû",
+    colorClass: "text-amber-600",
+  },
   "relance-en-retard": {
     icon: RefreshCw,
     title: "Relance en retard",
@@ -115,6 +128,21 @@ function fmtDate(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return isNaN(d.getTime()) ? iso : d.toLocaleDateString("fr-FR");
+}
+
+function fmtRappelDateTime(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const now = new Date();
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+
+  const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (isToday) return `Aujourd'hui ${time}`;
+  return `${d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })} ${time}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -253,6 +281,9 @@ export function LeadsTable({
   const [showEnRetard, setShowEnRetard] = useState(
     !initialFilter || initialFilter === "retard"
   );
+  const [showRappels, setShowRappels] = useState(
+    initialFilter === "rappels"
+  );
   const [sortKey, setSortKey] = useState<SortKey>("dateFormulaire");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(() => {
@@ -288,9 +319,15 @@ export function LeadsTable({
     if (filterQuery === "nouveaux") {
       setShowNouveaux(true);
       setShowEnRetard(false);
+      setShowRappels(false);
     } else if (filterQuery === "retard") {
       setShowEnRetard(true);
       setShowNouveaux(false);
+      setShowRappels(false);
+    } else if (filterQuery === "rappels") {
+      setShowRappels(true);
+      setShowNouveaux(false);
+      setShowEnRetard(false);
     }
   }, [searchParamsHook]);
 
@@ -311,6 +348,11 @@ export function LeadsTable({
     // Hide doublons by default unless toggle is on
     if (!showDoublons) {
       result = result.filter((l) => l.doublon !== "⚠ Doublon");
+    }
+
+    // Rappels filter
+    if (showRappels) {
+      result = result.filter((l) => hasActiveRappel(l));
     }
 
     // Nouveaux / En retard combined filter
@@ -358,19 +400,34 @@ export function LeadsTable({
       result = result.filter((l) => l.typeDeBien === filterTypeBien);
     }
 
-    // Text search: nom, téléphone, ville
+    // Text search: nom, téléphone, ville, rappelNote
     const q = search.trim().toLowerCase();
     if (q) {
       result = result.filter(
         (l) =>
           l.nom.toLowerCase().includes(q) ||
           l.telephone.includes(q) ||
-          l.ville.toLowerCase().includes(q)
+          l.ville.toLowerCase().includes(q) ||
+          (l.rappelNote && l.rappelNote.toLowerCase().includes(q))
       );
     }
 
-    // Sort
+    // Sort with Priority:
+    // 1. Due / Overdue rappels (rappelDate <= now and !rappelFait) -> TOP OF THE LIST
+    // 2. Today's rappels (scheduled today and !rappelFait) -> NEXT TOP
+    // 3. Upcoming active rappels
+    // 4. Default user-chosen column sort
     const sorted = [...result].sort((a, b) => {
+      const aDue = isRappelDue(a);
+      const bDue = isRappelDue(b);
+      if (aDue && !bDue) return -1;
+      if (!aDue && bDue) return 1;
+
+      const aToday = isRappelToday(a);
+      const bToday = isRappelToday(b);
+      if (aToday && !bToday) return -1;
+      if (!aToday && bToday) return 1;
+
       if (showNouveaux && showEnRetard) {
         const aNouveau = a.statut === "Nouveau";
         const bNouveau = b.statut === "Nouveau";
@@ -403,9 +460,16 @@ export function LeadsTable({
     showDoublons,
     showNouveaux,
     showEnRetard,
+    showRappels,
     sortKey,
     sortDir,
   ]);
+
+  // Count leads with active rappels
+  const rappelsCount = useMemo(
+    () => leads.filter((l) => hasActiveRappel(l)).length,
+    [leads]
+  );
 
   // Count leads hidden by doublon filter
   const doublonCount = useMemo(
@@ -706,6 +770,7 @@ export function LeadsTable({
               setShowDoublons(false);
               setShowNouveaux(false);
               setShowEnRetard(false);
+              setShowRappels(false);
             }}
             className="h-9 w-9 flex items-center justify-center rounded-md text-text-subtle hover:text-text hover:bg-surface-muted border border-border transition-colors flex-shrink-0"
             title="Réinitialiser tous les filtres"
@@ -717,6 +782,26 @@ export function LeadsTable({
 
         {/* Bottom Row: Quick Toggles & Action */}
         <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border">
+          {/* Rendez-vous / Rappels toggle */}
+          <button
+            id="leads-toggle-rappels"
+            type="button"
+            onClick={() => setShowRappels((v) => !v)}
+            className={[
+              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              showRappels ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100" : "",
+            ].join(" ")}
+            aria-pressed={showRappels}
+          >
+            <CalendarClock size={12} aria-hidden="true" className={showRappels ? "text-amber-700" : ""} />
+            Rendez-vous / Rappels
+            {rappelsCount > 0 && (
+              <span className={showRappels ? "text-amber-800 font-semibold" : "text-text-subtle"}>
+                ({rappelsCount})
+              </span>
+            )}
+          </button>
+
           {/* Nouveaux toggle */}
           <button
             id="leads-toggle-nouveaux"
@@ -888,10 +973,17 @@ export function LeadsTable({
                     const hasNeverContacted = alerts.some(
                       (a) => a.kind === "jamais-contacte"
                     );
+                    const isDue = isRappelDue(lead);
+                    const isToday = isRappelToday(lead);
+                    const hasRappel = hasActiveRappel(lead);
 
                     let rowBgClass = "hover:bg-surface-muted";
                     if (isSelected) {
                       rowBgClass = "bg-surface-subtle";
+                    } else if (isDue) {
+                      rowBgClass = "bg-rose-50/40 hover:bg-rose-50/60";
+                    } else if (isToday) {
+                      rowBgClass = "bg-amber-50/40 hover:bg-amber-50/60";
                     } else if (hasOverdueRelance) {
                       rowBgClass =
                         "bg-rose-50/40 hover:bg-rose-50/60";
@@ -913,6 +1005,10 @@ export function LeadsTable({
                           rowBgClass,
                           isSelected
                             ? "border-l-2 border-l-accent"
+                            : isDue
+                            ? "border-l-2 border-l-rose-500"
+                            : isToday
+                            ? "border-l-2 border-l-amber-500"
                             : "border-l-2 border-l-transparent",
                         ].join(" ")}
                         tabIndex={0}
@@ -932,8 +1028,31 @@ export function LeadsTable({
                         }}
                       >
                         {/* Nom */}
-                        <td className="px-3 py-2.5 pl-4 font-medium text-text max-w-[160px] truncate">
-                          {lead.nom || "—"}
+                        <td className="px-3 py-2.5 pl-4 font-medium text-text max-w-[200px]">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="truncate">{lead.nom || "—"}</span>
+                            {hasRappel && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span
+                                  className={[
+                                    "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-medium truncate max-w-[190px]",
+                                    isDue
+                                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                                      : isToday
+                                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                                      : "bg-blue-50 text-blue-700 border-blue-200",
+                                  ].join(" ")}
+                                  title={`${fmtRappelDateTime(lead.rappelDate)}${lead.rappelNote ? ` · ${lead.rappelNote}` : ""}`}
+                                >
+                                  <CalendarClock size={10} className="flex-shrink-0" />
+                                  <span className="font-semibold">{fmtRappelDateTime(lead.rappelDate)}</span>
+                                  {lead.rappelNote && (
+                                    <span className="truncate opacity-85">· {lead.rappelNote}</span>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </td>
                         {/* Statut */}
                         <td className="px-3 py-2.5">

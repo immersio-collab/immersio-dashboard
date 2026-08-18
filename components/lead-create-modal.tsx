@@ -2,8 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X, Loader2, Check, AlertTriangle } from "lucide-react";
+import { 
+  X, 
+  Loader2, 
+  Check, 
+  AlertTriangle,
+  Calendar,
+  CalendarClock,
+  CalendarCheck,
+  CheckCircle2
+} from "lucide-react";
 import type { Lead } from "@/types";
+import { getRappelStatus } from "@/lib/lead-alerts";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -37,6 +47,18 @@ const TYPE_BIEN_OPTIONS = [
 ];
 
 type Tab = "infos" | "suivi" | "notes";
+
+function fmtDateTimeForInput(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -110,6 +132,7 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
   const [formData, setFormData] = useState<Partial<Lead>>({
     nom: "",
     telephone: "",
+    email: "",
     canal: "",
     ville: "",
     typeDeBien: "",
@@ -124,6 +147,9 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
     prixProposeMAD: "",
     dateDeEchange: "",
     notes: "",
+    rappelDate: null,
+    rappelNote: "",
+    rappelFait: false,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -279,6 +305,17 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
                     }
                     className="input-base text-sm w-full h-8"
                     placeholder="Ex: +212 600 000 000"
+                  />
+                </FieldRow>
+
+                <FieldRow label="Email" id="c-email">
+                  <input
+                    id="c-email"
+                    type="email"
+                    value={formData.email || ""}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    className="input-base text-sm w-full h-8"
+                    placeholder="Ex: contact@email.com"
                   />
                 </FieldRow>
 
@@ -538,13 +575,120 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
             )}
 
             {activeTab === "notes" && (
-              <textarea
-                aria-label="Notes"
-                value={formData.notes || ""}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                className="input-base text-sm w-full h-48 resize-y py-2"
-                placeholder="Ajouter des notes sur ce lead..."
-              />
+              <div className="space-y-5">
+                {/* Rendez-vous & Rappel planifié card */}
+                <div className="p-3.5 bg-surface-muted/40 border border-border rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CalendarClock size={15} className="text-accent flex-shrink-0" />
+                      <h3 className="text-xs font-semibold text-text">
+                        Rendez-vous / Rappel planifié
+                      </h3>
+                    </div>
+                    {formData.rappelDate && (
+                      <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                        <Calendar size={10} /> Planifié
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Date & Time Picker */}
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="c-rappelDate"
+                      className="text-[11px] font-medium text-text-subtle"
+                    >
+                      Date et heure importante
+                    </label>
+                    <input
+                      id="c-rappelDate"
+                      type="datetime-local"
+                      value={fmtDateTimeForInput(formData.rappelDate)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleChange(
+                          "rappelDate",
+                          val ? new Date(val).toISOString() : (null as any)
+                        );
+                      }}
+                      className="input-base text-xs w-full h-8"
+                    />
+                  </div>
+
+                  {/* Note / Motif de la date */}
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="c-rappelNote"
+                      className="text-[11px] font-medium text-text-subtle"
+                    >
+                      Motif / Note du rendez-vous ou de la livraison
+                    </label>
+                    <input
+                      id="c-rappelNote"
+                      type="text"
+                      value={formData.rappelNote || ""}
+                      onChange={(e) => handleChange("rappelNote", e.target.value)}
+                      placeholder="Ex: Rencontre client au café, Livraison démo 3D..."
+                      className="input-base text-xs w-full h-8"
+                    />
+
+                    {/* Quick preset buttons */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {[
+                        "Rencontre client",
+                        "Date de livraison",
+                        "Appel téléphonique convenu",
+                        "Visite sur place",
+                      ].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            handleChange("rappelNote", preset);
+                          }}
+                          className="text-[10px] px-2 py-0.5 rounded bg-surface border border-border text-text-muted hover:text-text hover:bg-surface-muted transition-colors"
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Clear button if set */}
+                  {formData.rappelDate && (
+                    <div className="pt-2 border-t border-border flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleChange("rappelDate", null as any);
+                          handleChange("rappelNote", "");
+                        }}
+                        className="text-[11px] text-text-subtle hover:text-rose-600 transition-colors"
+                      >
+                        Effacer le rendez-vous
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* General Notes */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="c-general-notes"
+                    className="text-xs font-semibold text-text flex items-center gap-1.5"
+                  >
+                    <span>Notes générales</span>
+                  </label>
+                  <textarea
+                    id="c-general-notes"
+                    aria-label="Notes"
+                    value={formData.notes || ""}
+                    onChange={(e) => handleChange("notes", e.target.value)}
+                    className="input-base text-sm w-full h-32 resize-y py-2"
+                    placeholder="Ajouter des notes libres sur ce lead..."
+                  />
+                </div>
+              </div>
             )}
           </div>
 

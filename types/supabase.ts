@@ -31,6 +31,9 @@ export type Database = {
           nom: string | null
           notes: string | null
           prixProposeMAD: string | null
+          rappelDate: string | null
+          rappelFait: boolean | null
+          rappelNote: string | null
           relance1Auto: string | null
           relance2Auto: string | null
           relance3Auto: string | null
@@ -59,6 +62,9 @@ export type Database = {
           nom?: string | null
           notes?: string | null
           prixProposeMAD?: string | null
+          rappelDate?: string | null
+          rappelFait?: boolean | null
+          rappelNote?: string | null
           relance1Auto?: string | null
           relance2Auto?: string | null
           relance3Auto?: string | null
@@ -87,6 +93,9 @@ export type Database = {
           nom?: string | null
           notes?: string | null
           prixProposeMAD?: string | null
+          rappelDate?: string | null
+          rappelFait?: boolean | null
+          rappelNote?: string | null
           relance1Auto?: string | null
           relance2Auto?: string | null
           relance3Auto?: string | null

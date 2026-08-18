@@ -89,6 +89,9 @@ export interface Lead {
   /** Numéro de téléphone (format libre, peut inclure l'indicatif). */
   telephone: string;
 
+  /** Adresse email (optionnel). */
+  email?: string;
+
   /** Canal d'acquisition. */
   canal: LeadCanal;
 
@@ -167,6 +170,15 @@ export interface Lead {
   /** Notes libres saisies par l'agent. */
   notes: string;
 
+  /** Date et heure planifiée d'un rendez-vous, livraison ou rappel (ISO string). */
+  rappelDate?: string | null;
+
+  /** Note / motif associé à la date planifiée. */
+  rappelNote?: string | null;
+
+  /** Statut d'accomplissement du rappel / rendez-vous. */
+  rappelFait?: boolean | null;
+
   /**
    * "TRUE" | "FALSE" | "" — soft-delete.
    * Les leads archivés ne sont plus retournés par getLeads().
@@ -181,7 +193,8 @@ export interface Lead {
 export type LeadAlertKind =
   | "relance-en-retard"
   | "doublon-non-resolu"
-  | "jamais-contacte";
+  | "jamais-contacte"
+  | "rappel-du";
 
 export interface LeadAlert {
   kind: LeadAlertKind;

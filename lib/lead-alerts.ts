@@ -52,6 +52,49 @@ function isContactedAfter(lead: Lead, relanceDate: Date): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Rappel / Rendez-vous helpers
+// ---------------------------------------------------------------------------
+
+export type RappelStatus = "due" | "today" | "upcoming" | "done" | null;
+
+/** Returns true if rappelDate is set and not marked as fait. */
+export function hasActiveRappel(lead: Lead): boolean {
+  if (!lead.rappelDate || lead.rappelFait) return false;
+  const d = parseSheetDate(lead.rappelDate);
+  return d !== null;
+}
+
+/** Returns true if rappel is due (date/time in the past and not completed). */
+export function isRappelDue(lead: Lead): boolean {
+  if (!lead.rappelDate || lead.rappelFait) return false;
+  const d = parseSheetDate(lead.rappelDate);
+  if (!d) return false;
+  return isPast(d);
+}
+
+/** Returns true if rappel is scheduled for today (calendar day) and not completed. */
+export function isRappelToday(lead: Lead): boolean {
+  if (!lead.rappelDate || lead.rappelFait) return false;
+  const d = parseSheetDate(lead.rappelDate);
+  if (!d) return false;
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+/** Computes granular status for a lead's reminder/appointment. */
+export function getRappelStatus(lead: Lead): RappelStatus {
+  if (!lead.rappelDate) return null;
+  if (lead.rappelFait) return "done";
+  if (isRappelDue(lead)) return "due";
+  if (isRappelToday(lead)) return "today";
+  return "upcoming";
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -59,24 +102,54 @@ function isContactedAfter(lead: Lead, relanceDate: Date): boolean {
  * Computes all active alerts for a single lead.
  *
  * Rules:
- *  1. relance-en-retard   — A relance date is past AND no subsequent contact.
+ *  1. rappel-du           — A scheduled rendezvous / reminder date is reached/passed and not marked done.
+ *  2. relance-en-retard   — A relance date is past AND no subsequent contact.
  *                           Only the earliest overdue relance is reported.
- *  2. doublon-non-resolu  — doublon === "⚠ Doublon"
- *  3. jamais-contacte     — date1erContact empty AND dateFormulaire > 48 h ago
+ *  3. doublon-non-resolu  — doublon === "⚠ Doublon"
+ *  4. jamais-contacte     — date1erContact empty AND dateFormulaire > 48 h ago
  *
  * @pure — no side effects, no async, no external state.
  */
 export function getLeadAlerts(lead: Lead): LeadAlert[] {
   const alerts: LeadAlert[] = [];
 
-  // ── 1. Relance en retard ─────────────────────────────────────────────────
+  // ── 0. Rappel / Rendez-vous échu ou du jour ──────────────────────────────
+  if (isRappelDue(lead)) {
+    const d = parseSheetDate(lead.rappelDate || "");
+    const dateFormatted = d ? d.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "";
+    const motif = lead.rappelNote ? ` : "${lead.rappelNote}"` : "";
+    alerts.push({
+      kind: "rappel-du",
+      message: `Rendez-vous / Rappel prévu le ${dateFormatted}${motif}`,
+    });
+  }
+
+  // ── 1. Jamais contacté (Calcul de l'état) ────────────────────────────────
+  const dateFormulaire = parseSheetDate(lead.dateFormulaire);
+  const contact1 = parseSheetDate(lead.date1erContact);
+  const contactDernier = parseSheetDate(lead.dateDeEchange);
+
+  const isStatutAdvanced =
+    Boolean(lead.statut) &&
+    lead.statut.toLowerCase() !== "nouveau" &&
+    lead.statut.toLowerCase() !== "en pause";
+
+  const hasRecordedContact =
+    contact1 !== null ||
+    contactDernier !== null ||
+    lead.appelTelephonique === "Oui" ||
+    lead.contacteSurWhatsapp === "Oui" ||
+    isStatutAdvanced;
+
+  // ── 2. Relance en retard ─────────────────────────────────────────────────
   // Si le statut est "Gagné" ou "Perdu", aucune relance n'est considérée en retard
   const isGagneOrPerdu =
     lead.statut?.toLowerCase() === "gagné" ||
     lead.statut?.toLowerCase() === "gagne" ||
     lead.statut?.toLowerCase() === "perdu";
 
-  if (!isGagneOrPerdu) {
+  // Ne montrer l'alerte de relance que si le lead a déjà été contacté au moins une fois
+  if (hasRecordedContact && !isGagneOrPerdu) {
     const relanceDates: Array<{
       label: string;
       value: string;
@@ -100,7 +173,7 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
     }
   }
 
-  // ── 2. Doublon non résolu ────────────────────────────────────────────────
+  // ── 3. Doublon non résolu ────────────────────────────────────────────────
   if (lead.doublon === "⚠ Doublon") {
     alerts.push({
       kind: "doublon-non-resolu",
@@ -108,24 +181,7 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
     });
   }
 
-  // ── 3. Jamais contacté ───────────────────────────────────────────────────
-  const dateFormulaire = parseSheetDate(lead.dateFormulaire);
-  const contact1 = parseSheetDate(lead.date1erContact);
-  const contactDernier = parseSheetDate(lead.dateDeEchange);
-
-  // Un lead est considéré comme déjà contacté s'il a une date de contact,
-  // ou si un appel/WhatsApp a été enregistré, ou si son statut n'est plus "Nouveau" (ex: Contacté, Intéressé, Gagné, etc.)
-  const isStatutAdvanced =
-    Boolean(lead.statut) &&
-    lead.statut.toLowerCase() !== "nouveau" &&
-    lead.statut.toLowerCase() !== "en pause";
-
-  const hasRecordedContact =
-    contact1 !== null ||
-    contactDernier !== null ||
-    lead.appelTelephonique === "Oui" ||
-    lead.contacteSurWhatsapp === "Oui" ||
-    isStatutAdvanced;
+  // ── 4. Jamais contacté ───────────────────────────────────────────────────
 
   if (
     !hasRecordedContact &&

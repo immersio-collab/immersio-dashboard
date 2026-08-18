@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AlertTriangle, Users, RefreshCw, Copy, Clock } from "lucide-react";
+import { AlertTriangle, Users, RefreshCw, Copy, Clock, CalendarClock } from "lucide-react";
 
 import { getLeads, getLeadAlerts } from "@/lib/leads";
 import type { Lead, LeadAlert, LeadAlertKind } from "@/types";
@@ -16,9 +16,10 @@ export const dynamic = "force-dynamic";
 // ---------------------------------------------------------------------------
 
 const ALERT_PRIORITY: Record<LeadAlertKind, number> = {
-  "relance-en-retard": 0,   // most urgent
-  "jamais-contacte": 1,
-  "doublon-non-resolu": 2,
+  "rappel-du": 0,          // highest priority (scheduled appointment/delivery)
+  "relance-en-retard": 1,   // most urgent relance
+  "jamais-contacte": 2,
+  "doublon-non-resolu": 3,
 };
 
 // ---------------------------------------------------------------------------
@@ -64,6 +65,7 @@ function StatCard({
 
 /** Icon used per alert kind in the alert list. */
 const ALERT_ICON: Record<LeadAlertKind, React.ElementType> = {
+  "rappel-du": CalendarClock,
   "relance-en-retard": RefreshCw,
   "jamais-contacte": Clock,
   "doublon-non-resolu": Copy,

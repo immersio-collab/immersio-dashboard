@@ -17,9 +17,13 @@ import {
   Upload,
   Trash2,
   ExternalLink,
+  Calendar,
+  CalendarClock,
+  CalendarCheck,
+  CheckCircle2,
 } from "lucide-react";
 import type { Lead, LeadAlertKind } from "@/types";
-import { getLeadAlerts } from "@/lib/lead-alerts";
+import { getLeadAlerts, getRappelStatus, isRappelDue, isRappelToday } from "@/lib/lead-alerts";
 import { RelanceVariationsModal } from "@/components/relance-variations-modal";
 import { formatPhoneForWhatsApp, getWhatsAppUrl } from "@/lib/utils";
 
@@ -68,6 +72,11 @@ const ALERT_META: Record<
   LeadAlertKind,
   { icon: React.ElementType; title: string; colorClass: string }
 > = {
+  "rappel-du": {
+    icon: CalendarClock,
+    title: "Rendez-vous / Rappel dû",
+    colorClass: "text-amber-600",
+  },
   "relance-en-retard": {
     icon: RefreshCw,
     title: "Relance en retard",
@@ -153,6 +162,18 @@ function fmtDateForInput(iso: string): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function fmtDateTimeForInput(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +364,7 @@ export function LeadDetailCard({
     const editableKeys: (keyof Lead)[] = [
       "nom",
       "telephone",
+      "email",
       "canal",
       "ville",
       "typeDeBien",
@@ -358,6 +380,9 @@ export function LeadDetailCard({
       "prixProposeMAD",
       "dateDeEchange",
       "notes",
+      "rappelDate",
+      "rappelNote",
+      "rappelFait",
       "relance1Auto",
       "relance2Auto",
       "relance3Auto",
@@ -412,6 +437,8 @@ export function LeadDetailCard({
     { key: "suivi", label: "Suivi" },
     { key: "notes", label: "Notes" },
   ];
+
+  const rappelStatus = getRappelStatus(formData);
 
   return (
     <div className="flex flex-col h-full bg-surface border-l border-border animate-in slide-in-from-right-2 duration-200">
@@ -479,7 +506,12 @@ export function LeadDetailCard({
         {alerts.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2.5">
             {alerts.map((a) => {
-              const { icon: Icon, title, colorClass } = ALERT_META[a.kind];
+              const meta = ALERT_META[a.kind] || {
+                icon: AlertTriangle,
+                title: "Alerte",
+                colorClass: "text-amber-500",
+              };
+              const { icon: Icon, title, colorClass } = meta;
               return (
                 <span
                   key={a.kind}
@@ -540,6 +572,17 @@ export function LeadDetailCard({
                 onChange={(e) => handleChange("telephone", e.target.value)}
                 className="input-base text-sm w-full h-8"
                 placeholder="Ex: +212 600 000 000"
+              />
+            </FieldRow>
+
+            <FieldRow label="Email" id="d-email">
+              <input
+                id="d-email"
+                type="email"
+                value={formData.email || ""}
+                onChange={(e) => handleChange("email", e.target.value)}
+                className="input-base text-sm w-full h-8"
+                placeholder="Ex: contact@email.com"
               />
             </FieldRow>
 
@@ -914,13 +957,154 @@ export function LeadDetailCard({
         )}
 
         {activeTab === "notes" && (
-          <textarea
-            aria-label="Notes"
-            value={formData.notes}
-            onChange={(e) => handleChange("notes", e.target.value)}
-            className="input-base text-sm w-full h-48 resize-y py-2"
-            placeholder="Ajouter des notes sur ce lead..."
-          />
+          <div className="space-y-5">
+            {/* Rendez-vous & Rappel planifié card */}
+            <div className="p-3.5 bg-surface-muted/40 border border-border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarClock size={15} className="text-accent flex-shrink-0" />
+                  <h3 className="text-xs font-semibold text-text">
+                    Rendez-vous / Rappel planifié
+                  </h3>
+                </div>
+                {formData.rappelDate && (
+                  <div className="flex items-center gap-1.5">
+                    {rappelStatus === "done" && (
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                        <CheckCircle2 size={10} /> Terminé
+                      </span>
+                    )}
+                    {rappelStatus === "due" && (
+                      <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 animate-pulse">
+                        <CalendarClock size={10} /> Échéance atteinte
+                      </span>
+                    )}
+                    {rappelStatus === "today" && (
+                      <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                        <Calendar size={10} /> Aujourd&apos;hui
+                      </span>
+                    )}
+                    {rappelStatus === "upcoming" && (
+                      <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                        <Calendar size={10} /> Planifié
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Date & Time Picker */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="d-rappelDate"
+                  className="text-[11px] font-medium text-text-subtle"
+                >
+                  Date et heure importante
+                </label>
+                <input
+                  id="d-rappelDate"
+                  type="datetime-local"
+                  value={fmtDateTimeForInput(formData.rappelDate)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    handleChange(
+                      "rappelDate",
+                      val ? new Date(val).toISOString() : null
+                    );
+                  }}
+                  className="input-base text-xs w-full h-8"
+                />
+              </div>
+
+              {/* Note / Motif de la date */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="d-rappelNote"
+                  className="text-[11px] font-medium text-text-subtle"
+                >
+                  Motif / Note du rendez-vous ou de la livraison
+                </label>
+                <input
+                  id="d-rappelNote"
+                  type="text"
+                  value={formData.rappelNote || ""}
+                  onChange={(e) => handleChange("rappelNote", e.target.value)}
+                  placeholder="Ex: Rencontre client au café, Livraison démo 3D..."
+                  className="input-base text-xs w-full h-8"
+                />
+
+                {/* Quick preset buttons */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {[
+                    "Rencontre client",
+                    "Date de livraison",
+                    "Appel téléphonique convenu",
+                    "Visite sur place",
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        handleChange("rappelNote", preset);
+                      }}
+                      className="text-[10px] px-2 py-0.5 rounded bg-surface border border-border text-text-muted hover:text-text hover:bg-surface-muted transition-colors"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions on reminder */}
+              {formData.rappelDate && (
+                <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-xs text-text">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.rappelFait)}
+                      onChange={(e) =>
+                        handleChange("rappelFait", e.target.checked)
+                      }
+                      className="rounded border-border text-accent focus:ring-accent w-3.5 h-3.5"
+                    />
+                    <span className={formData.rappelFait ? "text-emerald-700 font-medium" : ""}>
+                      Marquer comme terminé
+                    </span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange("rappelDate", null);
+                      handleChange("rappelNote", "");
+                      handleChange("rappelFait", false);
+                    }}
+                    className="text-[11px] text-text-subtle hover:text-rose-600 transition-colors"
+                  >
+                    Effacer le rendez-vous
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* General Notes section */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="d-general-notes"
+                className="text-xs font-semibold text-text flex items-center gap-1.5"
+              >
+                <span>Notes générales</span>
+              </label>
+              <textarea
+                id="d-general-notes"
+                aria-label="Notes"
+                value={formData.notes || ""}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                className="input-base text-sm w-full h-36 resize-y py-2"
+                placeholder="Ajouter des notes libres sur ce lead..."
+              />
+            </div>
+          </div>
         )}
       </div>
 

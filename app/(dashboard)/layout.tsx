@@ -1,5 +1,5 @@
 import { SidebarNav } from "@/components/sidebar-nav";
-import { getLeads, getLeadAlerts } from "@/lib/leads";
+import { getLeads, getLeadAlerts, isRappelDue, isRappelToday, hasActiveRappel } from "@/lib/leads";
 
 /**
  * Dashboard route-group layout.
@@ -24,8 +24,29 @@ export default async function DashboardLayout({
     getLeadAlerts(l).some((alert) => alert.kind === "relance-en-retard")
   ).length;
 
+  const activeRappels = leads
+    .filter((l) => hasActiveRappel(l))
+    .map((l) => ({
+      leadId: l.leadId,
+      nom: l.nom || "Prospect sans nom",
+      rappelDate: l.rappelDate || "",
+      rappelNote: l.rappelNote || "",
+      isDue: isRappelDue(l),
+      isToday: isRappelToday(l),
+    }))
+    .sort((a, b) => {
+      // Due first, then soonest date
+      if (a.isDue && !b.isDue) return -1;
+      if (!a.isDue && b.isDue) return 1;
+      return (a.rappelDate || "").localeCompare(b.rappelDate || "");
+    });
+
   return (
-    <SidebarNav nouveauxCount={nouveauxCount} retardCount={retardCount}>
+    <SidebarNav 
+      nouveauxCount={nouveauxCount} 
+      retardCount={retardCount}
+      activeRappels={activeRappels}
+    >
       {children}
     </SidebarNav>
   );
