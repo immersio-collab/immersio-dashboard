@@ -41,6 +41,10 @@ export type LeadTypeBien =
   | "Bureau"
   | "Local commercial"
   | "Terrain"
+  | "Résidence"
+  | "Cabinet"
+  | "Hôtel"
+  | "Riad"
   | "Autre"
   | "";
 

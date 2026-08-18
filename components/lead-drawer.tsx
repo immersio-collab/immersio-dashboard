@@ -116,7 +116,8 @@ export function LeadDrawer({
   const [errorMessage, setErrorMessage] = useState("");
 
   const VILLE_OPTIONS = ["Rabat", "Casablanca", "Kénitra"];
-  const STANDARD_TYPE_BIEN = ["Appartement", "Villa", "Bureau", "Local commercial", "Terrain"];
+  const STANDARD_TYPE_BIEN = ["Appartement", "Villa", "Bureau", "Local commercial", "Terrain", "Résidence", "Cabinet", "Hôtel", "Riad"];
+  const CANAL_OPTIONS = ["Instagram", "Facebook", "WhatsApp", "Référence", "Site web"];
 
   const [isCustomVille, setIsCustomVille] = useState(
     !!lead.ville && !VILLE_OPTIONS.includes(lead.ville)
@@ -124,12 +125,16 @@ export function LeadDrawer({
   const [isCustomTypeBien, setIsCustomTypeBien] = useState(
     !!lead.typeDeBien && !STANDARD_TYPE_BIEN.includes(lead.typeDeBien)
   );
+  const [isCustomCanal, setIsCustomCanal] = useState(
+    !!lead.canal && !CANAL_OPTIONS.includes(lead.canal) && lead.canal !== "Autre"
+  );
 
   // Sync state when lead changes (e.g., after successful save + router.refresh)
   useEffect(() => {
     setFormData(lead);
     setIsCustomVille(!!lead.ville && !VILLE_OPTIONS.includes(lead.ville));
     setIsCustomTypeBien(!!lead.typeDeBien && !STANDARD_TYPE_BIEN.includes(lead.typeDeBien));
+    setIsCustomCanal(!!lead.canal && !CANAL_OPTIONS.includes(lead.canal) && lead.canal !== "Autre");
     // Reset status when switching leads
     setSaveStatus("idle");
   }, [lead]);
@@ -163,6 +168,7 @@ export function LeadDrawer({
       "notes",
       "ville",
       "typeDeBien",
+      "canal",
     ];
 
     for (const k of editableKeys) {
@@ -254,7 +260,40 @@ export function LeadDrawer({
           <FieldSection title="Contact">
             <ReadOnlyField label="Nom" value={lead.nom} />
             <ReadOnlyField label="Téléphone" value={lead.telephone} />
-            <ReadOnlyField label="Canal" value={lead.canal} />
+            <EditField label="Canal" id="f-canal">
+              <div className="flex flex-col gap-2 w-full">
+                <select
+                  id="f-canal"
+                  value={isCustomCanal ? "Autre" : formData.canal || ""}
+                  onChange={(e) => {
+                    if (e.target.value === "Autre") {
+                      setIsCustomCanal(true);
+                      handleChange("canal", "");
+                    } else {
+                      setIsCustomCanal(false);
+                      handleChange("canal", e.target.value);
+                    }
+                  }}
+                  className="input-base text-sm w-full h-8"
+                >
+                  <option value="">—</option>
+                  {CANAL_OPTIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  <option value="Autre">Autre</option>
+                </select>
+                {isCustomCanal && (
+                  <input
+                    type="text"
+                    value={formData.canal || ""}
+                    onChange={(e) => handleChange("canal", e.target.value)}
+                    className="input-base text-sm w-full h-8"
+                    placeholder="Saisissez le canal..."
+                    autoFocus
+                  />
+                )}
+              </div>
+            </EditField>
             <EditField label="Ville" id="f-ville">
               <div className="flex flex-col gap-2 w-full">
                 <select

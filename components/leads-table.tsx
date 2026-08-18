@@ -419,9 +419,9 @@ export function LeadsTable({
   const isFiltered = !!search || filterStatuts.length > 0 || !!filterCanal;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 flex flex-col flex-1 min-h-0">
       {/* ── Filter bar ── */}
-      <div className="flex flex-col gap-3 bg-surface border border-border p-3 rounded-lg shadow-sm">
+      <div className="flex flex-col gap-3 bg-surface border border-border p-3 rounded-lg shadow-sm shrink-0">
         {/* Top Row: Search & Dropdowns */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Text search */}
@@ -610,7 +610,7 @@ export function LeadsTable({
 
       {/* ── Archive error banner ── */}
       {archiveError && (
-        <div className="flex items-center gap-2 px-3 py-2 border border-border rounded bg-surface-muted">
+        <div className="flex items-center gap-2 px-3 py-2 border border-border rounded bg-surface-muted shrink-0">
           <AlertTriangle
             size={14}
             className="text-text-muted flex-shrink-0"
@@ -788,7 +788,7 @@ export function LeadsTable({
 
         {/* ── RIGHT: Detail Card ── */}
         {selectedLead ? (
-          <div className="flex-1 min-w-[320px] border-l-0">
+          <div className="flex-1 min-w-[320px] border-l-0 overflow-hidden flex flex-col min-h-0">
             <LeadDetailCard
               lead={selectedLead}
               onClose={() => setSelectedLead(null)}

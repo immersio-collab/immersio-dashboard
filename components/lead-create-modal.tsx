@@ -34,6 +34,10 @@ const TYPE_BIEN_OPTIONS = [
   "Bureau",
   "Local commercial",
   "Terrain",
+  "Résidence",
+  "Cabinet",
+  "Hôtel",
+  "Riad",
   "Autre",
 ];
 
@@ -136,6 +140,7 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
 
   const [isCustomVille, setIsCustomVille] = useState(false);
   const [isCustomTypeBien, setIsCustomTypeBien] = useState(false);
+  const [isCustomCanal, setIsCustomCanal] = useState(false);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -283,19 +288,40 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
                 </FieldRow>
 
                 <FieldRow label="Canal" id="c-canal">
-                  <select
-                    id="c-canal"
-                    value={formData.canal || ""}
-                    onChange={(e) => handleChange("canal", e.target.value)}
-                    className="input-base text-sm w-full h-8"
-                  >
-                    <option value="">—</option>
-                    {CANAL_OPTIONS.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col gap-2 w-full">
+                    <select
+                      id="c-canal"
+                      value={isCustomCanal ? "Autre" : formData.canal || ""}
+                      onChange={(e) => {
+                        if (e.target.value === "Autre") {
+                          setIsCustomCanal(true);
+                          handleChange("canal", "");
+                        } else {
+                          setIsCustomCanal(false);
+                          handleChange("canal", e.target.value);
+                        }
+                      }}
+                      className="input-base text-sm w-full h-8"
+                    >
+                      <option value="">—</option>
+                      {CANAL_OPTIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    {isCustomCanal && (
+                      <input
+                        id="c-canal-custom"
+                        type="text"
+                        value={formData.canal || ""}
+                        onChange={(e) => handleChange("canal", e.target.value)}
+                        className="input-base text-sm w-full h-8"
+                        placeholder="Saisissez le canal..."
+                        autoFocus
+                      />
+                    )}
+                  </div>
                 </FieldRow>
 
                 <FieldRow label="Ville" id="c-ville">

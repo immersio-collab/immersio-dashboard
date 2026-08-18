@@ -46,6 +46,10 @@ const TYPE_BIEN_OPTIONS = [
   "Bureau",
   "Local commercial",
   "Terrain",
+  "Résidence",
+  "Cabinet",
+  "Hôtel",
+  "Riad",
   "Autre",
 ];
 
@@ -187,9 +191,24 @@ export function LeadDetailCard({
   );
   const [errorMessage, setErrorMessage] = useState("");
 
+  const VILLE_OPTIONS = ["Rabat", "Casablanca", "Kénitra"];
+
+  const [isCustomCanal, setIsCustomCanal] = useState(
+    !!lead.canal && !CANAL_OPTIONS.includes(lead.canal as any) && lead.canal !== "Autre"
+  );
+  const [isCustomVille, setIsCustomVille] = useState(
+    !!lead.ville && !VILLE_OPTIONS.includes(lead.ville) && lead.ville !== "Autre"
+  );
+  const [isCustomTypeBien, setIsCustomTypeBien] = useState(
+    !!lead.typeDeBien && !TYPE_BIEN_OPTIONS.includes(lead.typeDeBien as any) && lead.typeDeBien !== "Autre"
+  );
+
   // Sync state when lead changes
   useEffect(() => {
     setFormData(lead);
+    setIsCustomCanal(!!lead.canal && !CANAL_OPTIONS.includes(lead.canal as any) && lead.canal !== "Autre");
+    setIsCustomVille(!!lead.ville && !VILLE_OPTIONS.includes(lead.ville) && lead.ville !== "Autre");
+    setIsCustomTypeBien(!!lead.typeDeBien && !TYPE_BIEN_OPTIONS.includes(lead.typeDeBien as any) && lead.typeDeBien !== "Autre");
     setSaveStatus("idle");
   }, [lead]);
 
@@ -402,46 +421,110 @@ export function LeadDetailCard({
             </FieldRow>
 
             <FieldRow label="Canal" id="d-canal">
-              <select
-                id="d-canal"
-                value={formData.canal}
-                onChange={(e) => handleChange("canal", e.target.value)}
-                className="input-base text-sm w-full h-8"
-              >
-                <option value="">—</option>
-                {CANAL_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-2 w-full">
+                <select
+                  id="d-canal"
+                  value={isCustomCanal ? "Autre" : formData.canal}
+                  onChange={(e) => {
+                    if (e.target.value === "Autre") {
+                      setIsCustomCanal(true);
+                      handleChange("canal", "");
+                    } else {
+                      setIsCustomCanal(false);
+                      handleChange("canal", e.target.value);
+                    }
+                  }}
+                  className="input-base text-sm w-full h-8"
+                >
+                  <option value="">—</option>
+                  {CANAL_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                {isCustomCanal && (
+                  <input
+                    type="text"
+                    value={formData.canal}
+                    onChange={(e) => handleChange("canal", e.target.value)}
+                    className="input-base text-sm w-full h-8"
+                    placeholder="Saisissez le canal..."
+                    autoFocus
+                  />
+                )}
+              </div>
             </FieldRow>
 
             <FieldRow label="Ville" id="d-ville">
-              <input
-                id="d-ville"
-                type="text"
-                value={formData.ville}
-                onChange={(e) => handleChange("ville", e.target.value)}
-                className="input-base text-sm w-full h-8"
-                placeholder="Ex: Casablanca"
-              />
+              <div className="flex flex-col gap-2 w-full">
+                <select
+                  id="d-ville"
+                  value={isCustomVille ? "Autre" : formData.ville}
+                  onChange={(e) => {
+                    if (e.target.value === "Autre") {
+                      setIsCustomVille(true);
+                      handleChange("ville", "");
+                    } else {
+                      setIsCustomVille(false);
+                      handleChange("ville", e.target.value);
+                    }
+                  }}
+                  className="input-base text-sm w-full h-8"
+                >
+                  <option value="">—</option>
+                  <option value="Rabat">Rabat</option>
+                  <option value="Casablanca">Casablanca</option>
+                  <option value="Kénitra">Kénitra</option>
+                  <option value="Autre">Autre</option>
+                </select>
+                {isCustomVille && (
+                  <input
+                    type="text"
+                    value={formData.ville}
+                    onChange={(e) => handleChange("ville", e.target.value)}
+                    className="input-base text-sm w-full h-8"
+                    placeholder="Saisissez la ville..."
+                    autoFocus
+                  />
+                )}
+              </div>
             </FieldRow>
 
             <FieldRow label="Type de bien" id="d-typeDeBien">
-              <select
-                id="d-typeDeBien"
-                value={formData.typeDeBien}
-                onChange={(e) => handleChange("typeDeBien", e.target.value)}
-                className="input-base text-sm w-full h-8"
-              >
-                <option value="">—</option>
-                {TYPE_BIEN_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-2 w-full">
+                <select
+                  id="d-typeDeBien"
+                  value={isCustomTypeBien ? "Autre" : formData.typeDeBien}
+                  onChange={(e) => {
+                    if (e.target.value === "Autre") {
+                      setIsCustomTypeBien(true);
+                      handleChange("typeDeBien", "");
+                    } else {
+                      setIsCustomTypeBien(false);
+                      handleChange("typeDeBien", e.target.value);
+                    }
+                  }}
+                  className="input-base text-sm w-full h-8"
+                >
+                  <option value="">—</option>
+                  {TYPE_BIEN_OPTIONS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                {isCustomTypeBien && (
+                  <input
+                    type="text"
+                    value={formData.typeDeBien}
+                    onChange={(e) => handleChange("typeDeBien", e.target.value)}
+                    className="input-base text-sm w-full h-8"
+                    placeholder="Saisissez le type de bien..."
+                    autoFocus
+                  />
+                )}
+              </div>
             </FieldRow>
 
             <FieldRow label="Surface (m²)" id="d-surface">

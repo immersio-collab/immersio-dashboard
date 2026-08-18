@@ -44,6 +44,10 @@ export function LeadCreateDrawer({
   const [errorMessage, setErrorMessage] = useState("");
   const [isDuplicate, setIsDuplicate] = useState(false);
 
+  const [isCustomCanal, setIsCustomCanal] = useState(false);
+  const [isCustomTypeBien, setIsCustomTypeBien] = useState(false);
+  const [isCustomVille, setIsCustomVille] = useState(false);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -150,31 +154,77 @@ export function LeadCreateDrawer({
               </EditField>
 
               <EditField label="Canal" id="create-canal">
-                <select
-                  id="create-canal"
-                  value={formData.canal || ""}
-                  onChange={(e) => handleChange("canal", e.target.value)}
-                  className="input-base text-sm w-full h-9"
-                >
-                  <option value="">—</option>
-                  <option value="Instagram">Instagram</option>
-                  <option value="Facebook">Facebook</option>
-                  <option value="WhatsApp">WhatsApp</option>
-                  <option value="Référence">Référence</option>
-                  <option value="Site web">Site web</option>
-                  <option value="Autre">Autre</option>
-                </select>
+                <div className="flex flex-col gap-2 w-full">
+                  <select
+                    id="create-canal"
+                    value={isCustomCanal ? "Autre" : formData.canal || ""}
+                    onChange={(e) => {
+                      if (e.target.value === "Autre") {
+                        setIsCustomCanal(true);
+                        handleChange("canal", "");
+                      } else {
+                        setIsCustomCanal(false);
+                        handleChange("canal", e.target.value);
+                      }
+                    }}
+                    className="input-base text-sm w-full h-9"
+                  >
+                    <option value="">—</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Référence">Référence</option>
+                    <option value="Site web">Site web</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                  {isCustomCanal && (
+                    <input
+                      id="create-canal-custom"
+                      type="text"
+                      value={formData.canal || ""}
+                      onChange={(e) => handleChange("canal", e.target.value)}
+                      className="input-base text-sm w-full h-9"
+                      placeholder="Saisissez le canal..."
+                      autoFocus
+                    />
+                  )}
+                </div>
               </EditField>
 
               <EditField label="Ville" id="create-ville">
-                <input
-                  id="create-ville"
-                  type="text"
-                  value={formData.ville || ""}
-                  onChange={(e) => handleChange("ville", e.target.value)}
-                  className="input-base text-sm w-full h-9"
-                  placeholder="Ex: Casablanca"
-                />
+                <div className="flex flex-col gap-2 w-full">
+                  <select
+                    id="create-ville"
+                    value={isCustomVille ? "Autre" : formData.ville || ""}
+                    onChange={(e) => {
+                      if (e.target.value === "Autre") {
+                        setIsCustomVille(true);
+                        handleChange("ville", "");
+                      } else {
+                        setIsCustomVille(false);
+                        handleChange("ville", e.target.value);
+                      }
+                    }}
+                    className="input-base text-sm w-full h-9"
+                  >
+                    <option value="">—</option>
+                    <option value="Rabat">Rabat</option>
+                    <option value="Casablanca">Casablanca</option>
+                    <option value="Kénitra">Kénitra</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                  {isCustomVille && (
+                    <input
+                      id="create-ville-custom"
+                      type="text"
+                      value={formData.ville || ""}
+                      onChange={(e) => handleChange("ville", e.target.value)}
+                      className="input-base text-sm w-full h-9"
+                      placeholder="Saisissez la ville..."
+                      autoFocus
+                    />
+                  )}
+                </div>
               </EditField>
             </div>
           </section>
@@ -185,14 +235,45 @@ export function LeadCreateDrawer({
             </h3>
             <div className="space-y-4">
               <EditField label="Type de bien" id="create-typeDeBien">
-                <input
-                  id="create-typeDeBien"
-                  type="text"
-                  value={formData.typeDeBien || ""}
-                  onChange={(e) => handleChange("typeDeBien", e.target.value)}
-                  className="input-base text-sm w-full h-9"
-                  placeholder="Ex: Appartement, Villa..."
-                />
+                <div className="flex flex-col gap-2 w-full">
+                  <select
+                    id="create-typeDeBien"
+                    value={isCustomTypeBien ? "Autre" : formData.typeDeBien || ""}
+                    onChange={(e) => {
+                      if (e.target.value === "Autre") {
+                        setIsCustomTypeBien(true);
+                        handleChange("typeDeBien", "");
+                      } else {
+                        setIsCustomTypeBien(false);
+                        handleChange("typeDeBien", e.target.value);
+                      }
+                    }}
+                    className="input-base text-sm w-full h-9"
+                  >
+                    <option value="">—</option>
+                    <option value="Appartement">Appartement</option>
+                    <option value="Villa">Villa</option>
+                    <option value="Bureau">Bureau</option>
+                    <option value="Local commercial">Local commercial</option>
+                    <option value="Terrain">Terrain</option>
+                    <option value="Résidence">Résidence</option>
+                    <option value="Cabinet">Cabinet</option>
+                    <option value="Hôtel">Hôtel</option>
+                    <option value="Riad">Riad</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                  {isCustomTypeBien && (
+                    <input
+                      id="create-typeDeBien-custom"
+                      type="text"
+                      value={formData.typeDeBien || ""}
+                      onChange={(e) => handleChange("typeDeBien", e.target.value)}
+                      className="input-base text-sm w-full h-9"
+                      placeholder="Saisissez le type de bien..."
+                      autoFocus
+                    />
+                  )}
+                </div>
               </EditField>
 
               <EditField label="Surface (m²)" id="create-surface">
