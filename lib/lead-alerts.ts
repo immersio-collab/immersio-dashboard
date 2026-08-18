@@ -142,14 +142,15 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
     isStatutAdvanced;
 
   // ── 2. Relance en retard ─────────────────────────────────────────────────
-  // Si le statut est "Gagné" ou "Perdu", aucune relance n'est considérée en retard
-  const isGagneOrPerdu =
+  // Si le statut est "Gagné", "Perdu" ou "En pause", aucune relance n'est considérée en retard
+  const isInactiveStatus =
     lead.statut?.toLowerCase() === "gagné" ||
     lead.statut?.toLowerCase() === "gagne" ||
-    lead.statut?.toLowerCase() === "perdu";
+    lead.statut?.toLowerCase() === "perdu" ||
+    lead.statut?.toLowerCase() === "en pause";
 
   // Ne montrer l'alerte de relance que si le lead a déjà été contacté au moins une fois
-  if (hasRecordedContact && !isGagneOrPerdu) {
+  if (hasRecordedContact && !isInactiveStatus) {
     const relanceDates: Array<{
       label: string;
       value: string;
