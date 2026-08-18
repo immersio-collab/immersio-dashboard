@@ -157,6 +157,15 @@ export interface Lead {
   /** Date de la 3e relance automatique. */
   relance3Auto: string;
 
+  /** Indique si la 1ère relance a été effectuée. */
+  relance1Fait: boolean;
+
+  /** Indique si la 2e relance a été effectuée. */
+  relance2Fait: boolean;
+
+  /** Indique si la 3e relance a été effectuée. */
+  relance3Fait: boolean;
+
   /** Notes libres saisies par l'agent. */
   notes: string;
 

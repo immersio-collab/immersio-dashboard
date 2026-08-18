@@ -33,6 +33,9 @@ export type Database = {
           relance1Auto: string | null
           relance2Auto: string | null
           relance3Auto: string | null
+          relance1Fait: boolean | null
+          relance2Fait: boolean | null
+          relance3Fait: boolean | null
           statut: string | null
           surface: string | null
           telephone: string | null
@@ -57,6 +60,9 @@ export type Database = {
           relance1Auto?: string | null
           relance2Auto?: string | null
           relance3Auto?: string | null
+          relance1Fait?: boolean | null
+          relance2Fait?: boolean | null
+          relance3Fait?: boolean | null
           statut?: string | null
           surface?: string | null
           telephone?: string | null
@@ -81,6 +87,9 @@ export type Database = {
           relance1Auto?: string | null
           relance2Auto?: string | null
           relance3Auto?: string | null
+          relance1Fait?: boolean | null
+          relance2Fait?: boolean | null
+          relance3Fait?: boolean | null
           statut?: string | null
           surface?: string | null
           telephone?: string | null

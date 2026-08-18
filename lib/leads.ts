@@ -61,11 +61,53 @@ function sanitizeFieldsForDb(fields: Partial<Lead>) {
   return sanitized;
 }
 
+function calculateRelanceDates(baseDateStr: string, currentLead: Partial<Lead>, fieldsToUpdate: Partial<Lead>) {
+  const baseDate = new Date(baseDateStr);
+  if (isNaN(baseDate.getTime())) return;
+
+  const addDays = (d: Date, days: number) => {
+    const nd = new Date(d);
+    nd.setDate(nd.getDate() + days);
+    return nd.toISOString();
+  };
+
+  const isR1Fait = fieldsToUpdate.relance1Fait !== undefined ? fieldsToUpdate.relance1Fait : currentLead.relance1Fait;
+  const isR2Fait = fieldsToUpdate.relance2Fait !== undefined ? fieldsToUpdate.relance2Fait : currentLead.relance2Fait;
+  const isR3Fait = fieldsToUpdate.relance3Fait !== undefined ? fieldsToUpdate.relance3Fait : currentLead.relance3Fait;
+
+  if (!isR1Fait) {
+    fieldsToUpdate.relance1Auto = addDays(baseDate, 1);
+  }
+  if (!isR2Fait) {
+    fieldsToUpdate.relance2Auto = addDays(baseDate, 3);
+  }
+  if (!isR3Fait) {
+    fieldsToUpdate.relance3Auto = addDays(baseDate, 7);
+  }
+}
+
 export async function updateLead(
   leadId: string,
   fields: Partial<Lead>
 ): Promise<void> {
   const supabase = getSupabaseClient();
+
+  // Fetch existing lead to check what needs shifting
+  const { data: existingLead, error: fetchError } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("leadId", leadId)
+    .single();
+
+  if (fetchError) {
+    throw new LeadsError(`Supabase error: ${fetchError.message}`);
+  }
+
+  // If dateDeEchange is provided and valid, recalculate relance dates
+  if (fields.dateDeEchange) {
+    calculateRelanceDates(fields.dateDeEchange, existingLead as Partial<Lead>, fields);
+  }
+
   const sanitizedFields = sanitizeFieldsForDb(fields);
   const { error } = await supabase
     .from("leads")
@@ -91,13 +133,21 @@ export async function archiveLead(leadId: string): Promise<void> {
 
 export async function createLead(fields: Partial<Lead>): Promise<any> {
   const supabase = getSupabaseClient();
+  
+  if (fields.dateFormulaire) {
+    calculateRelanceDates(fields.dateFormulaire, {}, fields);
+  }
+
   const sanitizedFields = sanitizeFieldsForDb(fields);
   
   // Create a minimal new lead if no ID is provided, typically clients should pass leadId
   const leadToInsert = {
     ...sanitizedFields,
     leadId: sanitizedFields.leadId || `L-${Date.now()}`, 
-    archive: "Non"
+    archive: "Non",
+    relance1Fait: false,
+    relance2Fait: false,
+    relance3Fait: false,
   };
 
   const { data, error } = await supabase

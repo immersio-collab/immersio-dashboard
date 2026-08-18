@@ -148,8 +148,17 @@ export function LeadDrawer({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function handleChange(key: keyof Lead, value: string) {
+  function handleChange(key: keyof Lead, value: any) {
     setFormData((prev) => ({ ...prev, [key]: value }));
+    setSaveStatus("idle");
+  }
+
+  function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
+    setFormData((prev) => ({
+      ...prev,
+      [`relance${relanceNum}Fait`]: checked,
+      ...(checked ? { dateDeEchange: new Date().toISOString() } : {}),
+    }));
     setSaveStatus("idle");
   }
 
@@ -169,6 +178,9 @@ export function LeadDrawer({
       "ville",
       "typeDeBien",
       "canal",
+      "relance1Fait",
+      "relance2Fait",
+      "relance3Fait",
     ];
 
     for (const k of editableKeys) {
@@ -370,10 +382,32 @@ export function LeadDrawer({
             <ReadOnlyField label="Doublon" value={lead.doublon} />
           </FieldSection>
 
-          <FieldSection title="Relances (Lecture seule)">
-            <ReadOnlyField label="Relance 1 (auto)" value={lead.relance1Auto} />
-            <ReadOnlyField label="Relance 2 (auto)" value={lead.relance2Auto} />
-            <ReadOnlyField label="Relance 3 (auto)" value={lead.relance3Auto} />
+          <FieldSection title="Relances automatiques">
+            <div className="space-y-3">
+              {[1, 2, 3].map((num) => {
+                const autoKey = `relance${num}Auto` as keyof Lead;
+                const faitKey = `relance${num}Fait` as keyof Lead;
+                const isChecked = Boolean(formData[faitKey]);
+                
+                return (
+                  <div key={num} className="grid grid-cols-[140px_1fr_auto] gap-2 items-center">
+                    <label className="text-xs text-text-subtle">Relance {num}</label>
+                    <div className="text-xs text-text-muted">
+                      {lead[autoKey] ? fmtDateForInput(lead[autoKey] as string) : "—"}
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={isChecked}
+                        onChange={(e) => handleRelanceToggle(num as 1 | 2 | 3, e.target.checked)}
+                      />
+                      <div className="w-9 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </FieldSection>
 
           <FieldSection title="Suivi commercial">

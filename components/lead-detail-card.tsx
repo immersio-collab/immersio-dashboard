@@ -212,8 +212,17 @@ export function LeadDetailCard({
     setSaveStatus("idle");
   }, [lead]);
 
-  function handleChange(key: keyof Lead, value: string) {
+  function handleChange(key: keyof Lead, value: any) {
     setFormData((prev) => ({ ...prev, [key]: value }));
+    setSaveStatus("idle");
+  }
+
+  function handleRelanceToggle(relanceNum: 1 | 2 | 3, checked: boolean) {
+    setFormData((prev) => ({
+      ...prev,
+      [`relance${relanceNum}Fait`]: checked,
+      ...(checked ? { dateDeEchange: new Date().toISOString() } : {}),
+    }));
     setSaveStatus("idle");
   }
 
@@ -240,6 +249,9 @@ export function LeadDetailCard({
       "prixProposeMAD",
       "dateDeEchange",
       "notes",
+      "relance1Fait",
+      "relance2Fait",
+      "relance3Fait",
     ];
 
     for (const k of editableKeys) {
@@ -672,29 +684,41 @@ export function LeadDetailCard({
               />
             </FieldRow>
 
-            {/* Relances auto — read-only */}
+            {/* Relances auto — read-only with toggle */}
             <div className="border-t border-border pt-3 mt-3">
               <p className="text-[10px] font-semibold text-text-subtle uppercase tracking-widest mb-2.5">
                 Relances automatiques
               </p>
               <div className="space-y-2">
-                {[
-                  { label: "Relance 1", value: lead.relance1Auto },
-                  { label: "Relance 2", value: lead.relance2Auto },
-                  { label: "Relance 3", value: lead.relance3Auto },
-                ].map((r) => (
-                  <div
-                    key={r.label}
-                    className="grid grid-cols-[120px_1fr] gap-2 items-center"
-                  >
-                    <span className="text-xs text-text-subtle">
-                      {r.label}
-                    </span>
-                    <span className="text-xs text-text-muted">
-                      {r.value || "—"}
-                    </span>
-                  </div>
-                ))}
+                {[1, 2, 3].map((num) => {
+                  const autoKey = `relance${num}Auto` as keyof Lead;
+                  const faitKey = `relance${num}Fait` as keyof Lead;
+                  const isChecked = Boolean(formData[faitKey]);
+                  const value = lead[autoKey];
+                  
+                  return (
+                    <div
+                      key={num}
+                      className="grid grid-cols-[120px_1fr_auto] gap-2 items-center"
+                    >
+                      <span className="text-xs text-text-subtle">
+                        Relance {num}
+                      </span>
+                      <span className="text-xs text-text-muted">
+                        {value ? fmtDateForInput(value as string) : "—"}
+                      </span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={isChecked}
+                          onChange={(e) => handleRelanceToggle(num as 1 | 2 | 3, e.target.checked)}
+                        />
+                        <div className="w-9 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </>
