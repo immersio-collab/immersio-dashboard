@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getLeads } from "@/lib/leads";
-import { LeadsTable } from "@/components/leads-table";
+import { LeadsTable } from "@/components/leads";
 
 export const metadata: Metadata = {
   title: "Leads — Immersio Dashboard",

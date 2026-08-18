@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import type { Lead, LeadAlertKind } from "@/types";
 import { getLeadAlerts, getRappelStatus, isRappelDue, isRappelToday } from "@/lib/lead-alerts";
-import { RelanceVariationsModal } from "@/components/relance-variations-modal";
+import { RelanceVariationsModal } from "@/components/leads/relance-variations-modal";
 import { formatPhoneForWhatsApp, getWhatsAppUrl } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------

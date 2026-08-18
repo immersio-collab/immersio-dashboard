@@ -6,14 +6,14 @@ import { getLeads, createLead, LeadsError } from "@/lib/leads";
 /**
  * GET /api/leads
  *
- * Returns all non-archived leads fetched from the Apps Script back-end.
+ * Returns all non-archived leads fetched from the Supabase database.
  *
  * Auth: requires a valid signed session cookie (`immersio_session`).
  *       Returns 401 if missing or expired.
  *
  * Errors:
  *   401 — no valid session
- *   502 — Apps Script responded with an error (bad gateway)
+ *   502 — Supabase responded with an error (bad gateway)
  *   500 — unexpected server-side failure
  */
 export async function GET(_req: NextRequest) {
@@ -25,15 +25,15 @@ export async function GET(_req: NextRequest) {
     );
   }
 
-  // ── 2. Fetch leads from Apps Script ────────────────────────────────────────
+  // ── 2. Fetch leads from Supabase ──────────────────────────────────────────
   try {
     const leads = await getLeads();
     return NextResponse.json({ data: leads }, { status: 200 });
   } catch (err) {
     if (err instanceof LeadsError) {
-      // Apps Script returned a non-2xx response.
+      // Supabase returned an error.
       return NextResponse.json(
-        { error: "Le service externe a retourné une erreur.", detail: err.message },
+        { error: "Le service BDD a retourné une erreur.", detail: err.message },
         { status: 502 }
       );
     }

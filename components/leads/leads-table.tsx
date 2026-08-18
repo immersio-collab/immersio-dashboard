@@ -29,10 +29,10 @@ import {
   isRappelToday,
   getRappelStatus,
 } from "@/lib/lead-alerts";
-import { LeadDetailCard } from "@/components/lead-detail-card";
-import { LeadCreateModal } from "@/components/lead-create-modal";
-import { RelanceVariationsModal } from "@/components/relance-variations-modal";
-import type { RelanceType } from "@/components/relance-variations-modal";
+import { LeadDetailCard } from "@/components/leads/lead-detail-card";
+import { LeadCreateModal } from "@/components/leads/lead-create-modal";
+import { RelanceVariationsModal } from "@/components/leads/relance-variations-modal";
+import type { RelanceType } from "@/components/leads/relance-variations-modal";
 
 // ---------------------------------------------------------------------------
 // Constants
