@@ -204,16 +204,17 @@ export function LeadsTable({
   // ── State ──────────────────────────────────────────────────────────────────
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [search, setSearch] = useState("");
-  const [filterStatuts, setFilterStatuts] = useState<string[]>(
-    initialFilter === "nouveaux" ? ["Nouveau"] : []
-  );
+  const [filterStatuts, setFilterStatuts] = useState<string[]>([]);
   const [isStatutDropdownOpen, setIsStatutDropdownOpen] = useState(false);
   const [filterCanal, setFilterCanal] = useState("");
   const [filterVille, setFilterVille] = useState("");
   const [filterTypeBien, setFilterTypeBien] = useState("");
   const [showDoublons, setShowDoublons] = useState(false);
+  const [showNouveaux, setShowNouveaux] = useState(
+    !initialFilter || initialFilter === "nouveaux"
+  );
   const [showEnRetard, setShowEnRetard] = useState(
-    initialFilter === "retard"
+    !initialFilter || initialFilter === "retard"
   );
   const [sortKey, setSortKey] = useState<SortKey>("dateFormulaire");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -248,11 +249,11 @@ export function LeadsTable({
   useEffect(() => {
     const filterQuery = searchParamsHook.get("filter");
     if (filterQuery === "nouveaux") {
-      setFilterStatuts(["Nouveau"]);
+      setShowNouveaux(true);
       setShowEnRetard(false);
     } else if (filterQuery === "retard") {
       setShowEnRetard(true);
-      setFilterStatuts([]);
+      setShowNouveaux(false);
     }
   }, [searchParamsHook]);
 
@@ -275,11 +276,15 @@ export function LeadsTable({
       result = result.filter((l) => l.doublon !== "⚠ Doublon");
     }
 
-    // En retard filter
-    if (showEnRetard) {
-      result = result.filter((l) =>
-        getLeadAlerts(l).some((a) => a.kind === "relance-en-retard")
-      );
+    // Nouveaux / En retard combined filter
+    if (showNouveaux || showEnRetard) {
+      result = result.filter((l) => {
+        const isNouveau = l.statut === "Nouveau";
+        const isRetard = getLeadAlerts(l).some((a) => a.kind === "relance-en-retard");
+        if (showNouveaux && showEnRetard) return isNouveau || isRetard;
+        if (showNouveaux) return isNouveau;
+        return isRetard;
+      });
     }
 
     // Statut filter
@@ -320,6 +325,13 @@ export function LeadsTable({
 
     // Sort
     const sorted = [...result].sort((a, b) => {
+      if (showNouveaux && showEnRetard) {
+        const aNouveau = a.statut === "Nouveau";
+        const bNouveau = b.statut === "Nouveau";
+        if (aNouveau && !bNouveau) return -1;
+        if (!aNouveau && bNouveau) return 1;
+      }
+
       let cmp = 0;
       if (sortKey === "dateFormulaire") {
         cmp = (a.dateFormulaire || "").localeCompare(
@@ -342,6 +354,7 @@ export function LeadsTable({
     filterVille,
     filterTypeBien,
     showDoublons,
+    showNouveaux,
     showEnRetard,
     sortKey,
     sortDir,
@@ -586,25 +599,17 @@ export function LeadsTable({
           <button
             id="leads-toggle-nouveaux"
             type="button"
-            onClick={() => {
-              const isOnlyNouveau = filterStatuts.length === 1 && filterStatuts[0] === "Nouveau";
-              if (isOnlyNouveau) {
-                setFilterStatuts([]); // toggle off
-              } else {
-                setFilterStatuts(["Nouveau"]); // toggle on exclusively
-                setShowEnRetard(false); // turn off en retard
-              }
-            }}
+            onClick={() => setShowNouveaux((v) => !v)}
             className={[
               "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
-              filterStatuts.includes("Nouveau") ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" : "",
+              showNouveaux ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" : "",
             ].join(" ")}
-            aria-pressed={filterStatuts.includes("Nouveau")}
+            aria-pressed={showNouveaux}
           >
             <Bell size={12} aria-hidden="true" />
             Nouveaux
             {nouveauxCount > 0 && (
-              <span className={filterStatuts.includes("Nouveau") ? "text-blue-700" : "text-text-subtle"}>
+              <span className={showNouveaux ? "text-blue-700" : "text-text-subtle"}>
                 ({nouveauxCount})
               </span>
             )}
@@ -614,13 +619,7 @@ export function LeadsTable({
           <button
             id="leads-toggle-retard"
             type="button"
-            onClick={() => {
-              const willBeOn = !showEnRetard;
-              setShowEnRetard(willBeOn);
-              if (willBeOn) {
-                setFilterStatuts([]); // turn off any status filter when looking for retards
-              }
-            }}
+            onClick={() => setShowEnRetard((v) => !v)}
             className={[
               "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
               showEnRetard ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "",
