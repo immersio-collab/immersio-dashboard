@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Global base styles.
+ * Sober, B2B tool aesthetic: neutral palette, system typography,
+ * 1px borders, subtle contrast. No gradients, no glassmorphism.
+ */
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #111827;
+    --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      monospace;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-text font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Typography scale: keep it tight and functional. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply text-accent font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-2xl;
+  }
+
+  h2 {
+    @apply text-xl;
+  }
+
+  h3 {
+    @apply text-lg;
+  }
+
+  /* Form elements: unified sober look. */
+  input,
+  textarea,
+  select,
+  button {
+    @apply font-sans;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-surface border border-border rounded text-text placeholder:text-text-subtle focus:outline-none focus:border-accent;
+  }
+
+  button {
+    @apply rounded transition-colors;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:bg-accent-hover disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-surface border border-border text-text px-4 py-2 text-sm font-medium hover:bg-surface-muted disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .input-base {
+    @apply block w-full px-3 py-2 text-sm;
+  }
+
+  .card {
+    @apply bg-surface border border-border rounded;
+  }
+}
