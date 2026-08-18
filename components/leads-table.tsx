@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Plus,
   Users,
+  Bell,
 } from "lucide-react";
 import type { Lead, LeadAlert, LeadAlertKind } from "@/types";
 import { getLeadAlerts } from "@/lib/lead-alerts";
@@ -326,6 +327,12 @@ export function LeadsTable({
     [leads]
   );
 
+  // Count nouveaux leads
+  const nouveauxCount = useMemo(
+    () => leads.filter((l) => l.statut === "Nouveau").length,
+    [leads]
+  );
+
   // ── Keyboard navigation (↑/↓) ─────────────────────────────────────────────
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -414,150 +421,191 @@ export function LeadsTable({
   return (
     <div className="space-y-3">
       {/* ── Filter bar ── */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Text search */}
-        <div className="relative flex-1 min-w-48 max-w-xs">
-          <Search
-            size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-subtle pointer-events-none"
-            aria-hidden="true"
-          />
-          <input
-            id="leads-search"
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Nom, téléphone, ville…"
-            className="input-base pl-8 text-sm h-9 w-full"
-            aria-label="Rechercher un lead"
-          />
+      <div className="flex flex-col gap-3 bg-surface border border-border p-3 rounded-lg shadow-sm">
+        {/* Top Row: Search & Dropdowns */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Text search */}
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle pointer-events-none"
+              aria-hidden="true"
+            />
+            <input
+              id="leads-search"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher (nom, tél, ville)..."
+              className="bg-surface border border-border rounded-md text-sm h-9 pl-9 pr-3 w-full focus:ring-1 focus:ring-accent outline-none"
+              aria-label="Rechercher un lead"
+            />
+          </div>
+
+          {/* Statut filter */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsStatutDropdownOpen(!isStatutDropdownOpen)}
+              className="bg-surface border border-border hover:bg-surface-muted transition-colors rounded-md text-sm h-9 px-3 flex items-center justify-between gap-2 min-w-[160px]"
+              aria-label="Filtrer par statut"
+            >
+              <span className="truncate max-w-[130px]">
+                {filterStatuts.length === 0
+                  ? "Tous les statuts"
+                  : filterStatuts.length === 1
+                  ? filterStatuts[0]
+                  : `${filterStatuts.length} statuts`}
+              </span>
+              <ChevronDown size={14} className="text-text-subtle flex-shrink-0" aria-hidden="true" />
+            </button>
+            
+            {isStatutDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsStatutDropdownOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-border rounded-md shadow-lg z-20 py-1.5 max-h-64 overflow-auto">
+                  {STATUT_OPTIONS.map((s) => {
+                    const isChecked = filterStatuts.includes(s);
+                    return (
+                      <label
+                        key={s}
+                        className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-surface-muted cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setFilterStatuts((prev) =>
+                              prev.includes(s)
+                                ? prev.filter((x) => x !== s)
+                                : [...prev, s]
+                            );
+                          }}
+                          className="rounded border-border text-accent focus:ring-accent w-3.5 h-3.5 flex-shrink-0"
+                        />
+                        <span className="truncate">{s}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Canal filter */}
+          <select
+            id="leads-filter-canal"
+            value={filterCanal}
+            onChange={(e) => setFilterCanal(e.target.value)}
+            className="bg-surface border border-border hover:bg-surface-muted transition-colors rounded-md text-sm h-9 px-3 pr-8 min-w-[160px]"
+            aria-label="Filtrer par canal"
+          >
+            <option value="">Tous les canaux</option>
+            {CANAL_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Statut filter */}
-        <div className="relative">
+        {/* Bottom Row: Quick Toggles & Action */}
+        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border">
+          {/* Nouveaux toggle */}
+          <button
+            id="leads-toggle-nouveaux"
+            type="button"
+            onClick={() => {
+              const isOnlyNouveau = filterStatuts.length === 1 && filterStatuts[0] === "Nouveau";
+              if (isOnlyNouveau) {
+                setFilterStatuts([]); // toggle off
+              } else {
+                setFilterStatuts(["Nouveau"]); // toggle on exclusively
+                setShowEnRetard(false); // turn off en retard
+              }
+            }}
+            className={[
+              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              filterStatuts.includes("Nouveau") ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" : "",
+            ].join(" ")}
+            aria-pressed={filterStatuts.includes("Nouveau")}
+          >
+            <Bell size={12} aria-hidden="true" />
+            Nouveaux
+            {nouveauxCount > 0 && (
+              <span className={filterStatuts.includes("Nouveau") ? "text-blue-700" : "text-text-subtle"}>
+                ({nouveauxCount})
+              </span>
+            )}
+          </button>
+
+          {/* En retard toggle */}
+          <button
+            id="leads-toggle-retard"
+            type="button"
+            onClick={() => {
+              const willBeOn = !showEnRetard;
+              setShowEnRetard(willBeOn);
+              if (willBeOn) {
+                setFilterStatuts([]); // turn off any status filter when looking for retards
+              }
+            }}
+            className={[
+              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              showEnRetard ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "",
+            ].join(" ")}
+            aria-pressed={showEnRetard}
+          >
+            <Clock size={12} aria-hidden="true" />
+            En retard
+            {retardCount > 0 && (
+              <span className={showEnRetard ? "text-red-700" : "text-text-subtle"}>
+                ({retardCount})
+              </span>
+            )}
+          </button>
+
+          {/* Doublon toggle */}
+          <button
+            id="leads-toggle-doublons"
+            type="button"
+            onClick={() => setShowDoublons((v) => !v)}
+            className={[
+              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              showDoublons ? "bg-surface-subtle" : "",
+            ].join(" ")}
+            aria-pressed={showDoublons}
+          >
+            <Copy size={12} aria-hidden="true" />
+            Doublons
+            {doublonCount > 0 && (
+              <span className="text-text-subtle">({doublonCount})</span>
+            )}
+          </button>
+
+          <div className="flex-1" />
+
+          {/* Count */}
+          <span className="text-xs text-text-subtle tabular-nums mr-2 hidden sm:block">
+            {isFiltered
+              ? `${totalFiltered} / ${totalActive} leads`
+              : `${totalActive} lead${totalActive !== 1 ? "s" : ""}`}
+          </span>
+
+          {/* Add Lead */}
           <button
             type="button"
-            onClick={() => setIsStatutDropdownOpen(!isStatutDropdownOpen)}
-            className="input-base text-sm h-9 px-3 flex items-center justify-between gap-2 min-w-[150px]"
-            aria-label="Filtrer par statut"
+            onClick={() => setIsCreateOpen(true)}
+            className="btn-primary text-xs h-8 px-3 flex items-center gap-1.5"
           >
-            <span className="truncate max-w-[120px]">
-              {filterStatuts.length === 0
-                ? "Tous les statuts"
-                : filterStatuts.length === 1
-                ? filterStatuts[0]
-                : `${filterStatuts.length} statuts`}
-            </span>
-            <ChevronDown size={14} className="text-text-subtle flex-shrink-0" aria-hidden="true" />
+            <Plus size={14} aria-hidden="true" />
+            Ajouter un lead
           </button>
-          
-          {isStatutDropdownOpen && (
-            <>
-              {/* Invisible backdrop to close dropdown when clicking outside */}
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setIsStatutDropdownOpen(false)}
-                aria-hidden="true"
-              />
-              <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-border rounded-md shadow-lg z-20 py-1.5 max-h-64 overflow-auto">
-                {STATUT_OPTIONS.map((s) => {
-                  const isChecked = filterStatuts.includes(s);
-                  return (
-                    <label
-                      key={s}
-                      className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-surface-muted cursor-pointer text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          setFilterStatuts((prev) =>
-                            prev.includes(s)
-                              ? prev.filter((x) => x !== s)
-                              : [...prev, s]
-                          );
-                        }}
-                        className="rounded border-border text-accent focus:ring-accent w-3.5 h-3.5 flex-shrink-0"
-                      />
-                      <span className="truncate">{s}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </>
-          )}
         </div>
-
-        {/* Canal filter */}
-        <select
-          id="leads-filter-canal"
-          value={filterCanal}
-          onChange={(e) => setFilterCanal(e.target.value)}
-          className="input-base text-sm h-9 pr-8"
-          aria-label="Filtrer par canal"
-        >
-          <option value="">Tous les canaux</option>
-          {CANAL_OPTIONS.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        {/* En retard toggle */}
-        <button
-          id="leads-toggle-retard"
-          type="button"
-          onClick={() => setShowEnRetard((v) => !v)}
-          className={[
-            "btn-secondary text-xs h-9 px-3 flex items-center gap-1.5",
-            showEnRetard ? "bg-red-50 text-red-700 border-red-200" : "",
-          ].join(" ")}
-          aria-pressed={showEnRetard}
-        >
-          <Clock size={12} aria-hidden="true" />
-          En retard
-          {retardCount > 0 && (
-            <span className={showEnRetard ? "text-red-700" : "text-text-subtle"}>
-              ({retardCount})
-            </span>
-          )}
-        </button>
-
-        {/* Doublon toggle */}
-        <button
-          id="leads-toggle-doublons"
-          type="button"
-          onClick={() => setShowDoublons((v) => !v)}
-          className={[
-            "btn-secondary text-xs h-9 px-3 flex items-center gap-1.5",
-            showDoublons ? "bg-surface-subtle" : "",
-          ].join(" ")}
-          aria-pressed={showDoublons}
-        >
-          <Copy size={12} aria-hidden="true" />
-          Doublons
-          {doublonCount > 0 && (
-            <span className="text-text-subtle">({doublonCount})</span>
-          )}
-        </button>
-
-        {/* Add Lead */}
-        <button
-          type="button"
-          onClick={() => setIsCreateOpen(true)}
-          className="btn-primary text-xs h-9 px-3 flex items-center gap-1.5"
-        >
-          <Plus size={14} aria-hidden="true" />
-          Ajouter un lead
-        </button>
-
-        {/* Count */}
-        <span className="ml-auto text-xs text-text-subtle tabular-nums">
-          {isFiltered
-            ? `${totalFiltered} / ${totalActive} leads`
-            : `${totalActive} lead${totalActive !== 1 ? "s" : ""}`}
-        </span>
       </div>
 
       {/* ── Archive error banner ── */}
