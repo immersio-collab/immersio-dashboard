@@ -20,6 +20,7 @@ import {
   RotateCcw,
   CalendarClock,
   Calendar,
+  Filter,
 } from "lucide-react";
 import type { Lead, LeadAlert, LeadAlertKind } from "@/types";
 import { 
@@ -298,6 +299,7 @@ export function LeadsTable({
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
 
@@ -581,10 +583,10 @@ export function LeadsTable({
     <div className="space-y-3 flex flex-col flex-1 min-h-0">
       {/* ── Filter bar ── */}
       <div className="flex flex-col gap-3 bg-surface border border-border p-3 rounded-lg shadow-sm shrink-0">
-        {/* Top Row: Search & Dropdowns */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Top Row: Search & Mobile Filter Button */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Text search */}
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <div className="relative flex-1 min-w-[120px] max-w-sm">
             <Search
               size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle pointer-events-none"
@@ -600,6 +602,48 @@ export function LeadsTable({
               aria-label="Rechercher un lead"
             />
           </div>
+
+          {/* Mobile Filters Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileFiltersOpen(true)}
+            className="sm:hidden btn-secondary h-9 w-9 p-0 flex items-center justify-center shrink-0 relative"
+            aria-label="Filtres"
+          >
+            <Filter size={16} />
+            {(filterStatuts.length > 0 || filterCanal || filterVille || filterTypeBien || filterSuivi.length > 0) && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Overlay Background */}
+        {isMobileFiltersOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 sm:hidden" 
+            onClick={() => setIsMobileFiltersOpen(false)} 
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Dropdowns Row (Modal on mobile, Inline on desktop) */}
+        <div 
+          className={[
+            "gap-3",
+            isMobileFiltersOpen 
+              ? "fixed bottom-0 left-0 right-0 bg-surface z-50 p-4 rounded-t-2xl shadow-2xl flex flex-col items-stretch max-h-[85vh] overflow-y-auto sm:static sm:z-auto sm:p-0 sm:rounded-none sm:shadow-none sm:flex-row sm:items-center sm:max-h-none sm:overflow-visible" 
+              : "hidden sm:flex sm:flex-wrap sm:items-center"
+          ].join(" ")}
+        >
+          {/* Header for mobile modal */}
+          {isMobileFiltersOpen && (
+            <div className="flex items-center justify-between sm:hidden mb-2 pb-3 border-b border-border">
+              <h3 className="font-semibold text-text">Filtres</h3>
+              <button onClick={() => setIsMobileFiltersOpen(false)} className="p-1 text-text-subtle hover:text-text rounded-md hover:bg-surface-muted transition-colors">
+                <X size={20}/>
+              </button>
+            </div>
+          )}
 
           {/* Statut filter */}
           <div className="relative">
@@ -772,32 +816,34 @@ export function LeadsTable({
               setShowEnRetard(false);
               setShowRappels(false);
             }}
-            className="h-9 w-9 flex items-center justify-center rounded-md text-text-subtle hover:text-text hover:bg-surface-muted border border-border transition-colors flex-shrink-0"
+            className="h-9 sm:w-9 flex items-center justify-center sm:rounded-md text-text-subtle hover:text-text hover:bg-surface-muted sm:border sm:border-border transition-colors flex-shrink-0 mt-2 sm:mt-0 py-2 sm:py-0 border border-border rounded-md w-full"
             title="Réinitialiser tous les filtres"
             aria-label="Réinitialiser tous les filtres"
           >
-            <RotateCcw size={14} aria-hidden="true" />
+            <RotateCcw size={14} aria-hidden="true" className="mr-2 sm:mr-0" />
+            <span className="sm:hidden text-sm">Réinitialiser les filtres</span>
           </button>
         </div>
 
         {/* Bottom Row: Quick Toggles & Action */}
-        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-3 border-t border-border">
           {/* Rendez-vous / Rappels toggle */}
           <button
             id="leads-toggle-rappels"
             type="button"
             onClick={() => setShowRappels((v) => !v)}
             className={[
-              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              "btn-secondary text-xs h-8 px-2.5 sm:px-3 flex items-center justify-center gap-1.5 transition-colors",
               showRappels ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100" : "",
             ].join(" ")}
             aria-pressed={showRappels}
+            title="Rendez-vous / Rappels"
           >
-            <CalendarClock size={12} aria-hidden="true" className={showRappels ? "text-amber-700" : ""} />
-            Rendez-vous / Rappels
+            <CalendarClock size={14} aria-hidden="true" className={showRappels ? "text-amber-700" : ""} />
+            <span className="hidden sm:inline">Rendez-vous / Rappels</span>
             {rappelsCount > 0 && (
               <span className={showRappels ? "text-amber-800 font-semibold" : "text-text-subtle"}>
-                ({rappelsCount})
+                {rappelsCount}
               </span>
             )}
           </button>
@@ -808,16 +854,17 @@ export function LeadsTable({
             type="button"
             onClick={() => setShowNouveaux((v) => !v)}
             className={[
-              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              "btn-secondary text-xs h-8 px-2.5 sm:px-3 flex items-center justify-center gap-1.5 transition-colors",
               showNouveaux ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" : "",
             ].join(" ")}
             aria-pressed={showNouveaux}
+            title="Nouveaux"
           >
-            <Bell size={12} aria-hidden="true" />
-            Nouveaux
+            <Bell size={14} aria-hidden="true" />
+            <span className="hidden sm:inline">Nouveaux</span>
             {nouveauxCount > 0 && (
               <span className={showNouveaux ? "text-blue-700" : "text-text-subtle"}>
-                ({nouveauxCount})
+                {nouveauxCount}
               </span>
             )}
           </button>
@@ -828,16 +875,17 @@ export function LeadsTable({
             type="button"
             onClick={() => setShowEnRetard((v) => !v)}
             className={[
-              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              "btn-secondary text-xs h-8 px-2.5 sm:px-3 flex items-center justify-center gap-1.5 transition-colors",
               showEnRetard ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "",
             ].join(" ")}
             aria-pressed={showEnRetard}
+            title="En retard"
           >
-            <Clock size={12} aria-hidden="true" />
-            En retard
+            <Clock size={14} aria-hidden="true" />
+            <span className="hidden sm:inline">En retard</span>
             {retardCount > 0 && (
               <span className={showEnRetard ? "text-red-700" : "text-text-subtle"}>
-                ({retardCount})
+                {retardCount}
               </span>
             )}
           </button>
@@ -848,12 +896,12 @@ export function LeadsTable({
             type="button"
             onClick={() => setShowDoublons((v) => !v)}
             className={[
-              "btn-secondary text-xs h-8 px-3 flex items-center gap-1.5 transition-colors",
+              "hidden sm:flex btn-secondary text-xs h-8 px-3 items-center gap-1.5 transition-colors",
               showDoublons ? "bg-surface-subtle" : "",
             ].join(" ")}
             aria-pressed={showDoublons}
           >
-            <Copy size={12} aria-hidden="true" />
+            <Copy size={14} aria-hidden="true" />
             Doublons
             {doublonCount > 0 && (
               <span className="text-text-subtle">({doublonCount})</span>
@@ -873,10 +921,11 @@ export function LeadsTable({
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="btn-primary text-xs h-8 px-3 flex items-center gap-1.5"
+            className="btn-primary text-xs h-8 px-2 sm:px-3 flex items-center justify-center gap-1.5"
+            title="Ajouter un lead"
           >
             <Plus size={14} aria-hidden="true" />
-            Ajouter un lead
+            <span className="hidden sm:inline">Ajouter un lead</span>
           </button>
         </div>
       </div>
@@ -906,10 +955,8 @@ export function LeadsTable({
         {/* ── LEFT: Table ── */}
         <div
           className={[
-            "card overflow-hidden transition-all duration-200 flex-shrink-0",
-            selectedLead
-              ? "w-[58%] min-w-0"
-              : "w-full",
+            "card overflow-hidden transition-all duration-200 flex-shrink-0 w-full",
+            selectedLead ? "lg:w-[58%] min-w-0" : "",
           ].join(" ")}
         >
           <div className="overflow-auto h-full">
@@ -1112,17 +1159,26 @@ export function LeadsTable({
 
         {/* ── RIGHT: Detail Card ── */}
         {selectedLead ? (
-          <div className="flex-1 min-w-[320px] border-l-0 overflow-hidden flex flex-col min-h-0">
-            <LeadDetailCard
-              lead={selectedLead}
-              onClose={() => setSelectedLead(null)}
-              onArchiveRequest={handleArchiveRequest}
-              archiveConfirmId={archiveConfirmId}
-              archivingId={archivingId}
-              onArchiveConfirm={handleArchiveConfirm}
-              onArchiveCancel={handleArchiveCancel}
+          <>
+            {/* Mobile Modal Overlay */}
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+              onClick={() => setSelectedLead(null)} 
+              aria-hidden="true" 
             />
-          </div>
+            {/* Detail Card Container */}
+            <div className="fixed inset-x-4 sm:inset-x-[10%] top-[5vh] bottom-[5vh] z-50 bg-surface rounded-xl shadow-2xl flex flex-col overflow-hidden lg:static lg:inset-auto lg:z-auto lg:flex-1 lg:min-w-[320px] lg:border-l-0 lg:rounded-none lg:shadow-none lg:min-h-0">
+              <LeadDetailCard
+                lead={selectedLead}
+                onClose={() => setSelectedLead(null)}
+                onArchiveRequest={handleArchiveRequest}
+                archiveConfirmId={archiveConfirmId}
+                archivingId={archivingId}
+                onArchiveConfirm={handleArchiveConfirm}
+                onArchiveCancel={handleArchiveCancel}
+              />
+            </div>
+          </>
         ) : (
           <div className="flex-1 min-w-[320px] hidden lg:flex items-center justify-center border-l border-border bg-surface-muted/50 rounded-r">
             <div className="text-center px-6">
