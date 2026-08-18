@@ -17,6 +17,7 @@ import {
 import type { Lead, LeadAlertKind } from "@/types";
 import { getLeadAlerts } from "@/lib/lead-alerts";
 import { RelanceVariationsModal } from "@/components/relance-variations-modal";
+import { formatPhoneForWhatsApp, getWhatsAppUrl } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -179,13 +180,12 @@ export function LeadDetailCard({
   onArchiveCancel,
 }: LeadDetailCardProps) {
   const router = useRouter();
-  const alerts = getLeadAlerts(lead);
-
   const isConfirmingArchive = archiveConfirmId === lead.leadId;
   const isArchiving = archivingId === lead.leadId;
 
   const [activeTab, setActiveTab] = useState<Tab>("infos");
   const [formData, setFormData] = useState<Lead>(lead);
+  const alerts = getLeadAlerts(formData);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
     "idle"
@@ -322,10 +322,9 @@ export function LeadDetailCard({
     }
   }
 
-  const phoneClean = lead.telephone?.replace(/\s/g, "") || "";
-  const whatsappUrl = phoneClean
-    ? `https://wa.me/${phoneClean.replace(/^\+/, "")}`
-    : "";
+  const rawPhone = formData.telephone || lead.telephone || "";
+  const phoneFormatted = formatPhoneForWhatsApp(rawPhone);
+  const whatsappUrl = getWhatsAppUrl(rawPhone);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "infos", label: "Infos" },
@@ -373,9 +372,9 @@ export function LeadDetailCard({
 
         {/* Quick actions */}
         <div className="flex items-center gap-2 mt-2.5">
-          {phoneClean && (
+          {phoneFormatted && (
             <a
-              href={`tel:${phoneClean}`}
+              href={`tel:+${phoneFormatted}`}
               className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted border border-border rounded px-2.5 py-1 hover:bg-surface-muted hover:text-text transition-colors"
             >
               <Phone size={12} aria-hidden="true" />

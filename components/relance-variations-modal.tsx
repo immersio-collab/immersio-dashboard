@@ -44,24 +44,7 @@ const RELANCE_LABELS: Record<RelanceType, { title: string; subtitle: string }> =
   },
 };
 
-/**
- * Formatage automatique du numéro de téléphone :
- * Retire espaces, tirets, parenthèses et gère les préfixes 0, +212, 212
- * pour obtenir un format international sans "+" (ex: 212612345678).
- */
-export function formatPhoneForWhatsApp(phone?: string): string {
-  if (!phone) return "";
-  let cleaned = phone.replace(/[^0-9+]/g, "");
-  if (cleaned.startsWith("+")) {
-    cleaned = cleaned.slice(1);
-  } else if (cleaned.startsWith("00")) {
-    cleaned = cleaned.slice(2);
-  } else if (cleaned.startsWith("0") && cleaned.length === 10) {
-    // Format local marocain (ex: 0612345678 -> 212612345678)
-    cleaned = "212" + cleaned.slice(1);
-  }
-  return cleaned;
-}
+import { formatPhoneForWhatsApp, getWhatsAppUrl } from "@/lib/utils";
 
 export interface RelanceVariationsModalProps {
   relanceType: RelanceType;
@@ -111,9 +94,10 @@ export function RelanceVariationsModal({
 
   function handleWhatsApp(text: string) {
     if (!hasValidPhone) return;
-    const encoded = encodeURIComponent(text);
-    const url = `https://wa.me/${formattedPhone}?text=${encoded}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    const url = getWhatsAppUrl(formattedPhone, text);
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   }
 
   return (

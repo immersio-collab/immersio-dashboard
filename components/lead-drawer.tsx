@@ -106,12 +106,11 @@ export function LeadDrawer({
   onArchiveCancel,
 }: LeadDrawerProps) {
   const router = useRouter();
-  const alerts = getLeadAlerts(lead);
-
   const isConfirmingArchive = archiveConfirmId === lead.leadId;
   const isArchiving = archivingId === lead.leadId;
 
   const [formData, setFormData] = useState<Lead>(lead);
+  const alerts = getLeadAlerts(formData);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");

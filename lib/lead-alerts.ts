@@ -70,20 +70,32 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
   const alerts: LeadAlert[] = [];
 
   // ── 1. Relance en retard ─────────────────────────────────────────────────
-  const relanceDates: Array<{ label: string; value: string }> = [
-    { label: "Relance 1", value: lead.relance1Auto },
-    { label: "Relance 2", value: lead.relance2Auto },
-    { label: "Relance 3", value: lead.relance3Auto },
-  ];
+  // Si le statut est "Gagné", aucune relance n'est considérée en retard
+  const isGagne =
+    lead.statut?.toLowerCase() === "gagné" ||
+    lead.statut?.toLowerCase() === "gagne";
 
-  for (const { label, value } of relanceDates) {
-    const date = parseSheetDate(value);
-    if (date !== null && isPast(date) && !isContactedAfter(lead, date)) {
-      alerts.push({
-        kind: "relance-en-retard",
-        message: `${label} échue le ${date.toLocaleDateString("fr-FR")} sans contact enregistré.`,
-      });
-      break; // only the earliest overdue relance
+  if (!isGagne) {
+    const relanceDates: Array<{
+      label: string;
+      value: string;
+      fait?: boolean;
+    }> = [
+      { label: "Relance 1", value: lead.relance1Auto, fait: Boolean(lead.relance1Fait) },
+      { label: "Relance 2", value: lead.relance2Auto, fait: Boolean(lead.relance2Fait) },
+      { label: "Relance 3", value: lead.relance3Auto, fait: Boolean(lead.relance3Fait) },
+    ];
+
+    for (const { label, value, fait } of relanceDates) {
+      if (fait) continue;
+      const date = parseSheetDate(value);
+      if (date !== null && isPast(date) && !isContactedAfter(lead, date)) {
+        alerts.push({
+          kind: "relance-en-retard",
+          message: `${label} échue le ${date.toLocaleDateString("fr-FR")} sans contact enregistré.`,
+        });
+        break; // only the earliest overdue relance
+      }
     }
   }
 
@@ -98,9 +110,24 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
   // ── 3. Jamais contacté ───────────────────────────────────────────────────
   const dateFormulaire = parseSheetDate(lead.dateFormulaire);
   const contact1 = parseSheetDate(lead.date1erContact);
+  const contactDernier = parseSheetDate(lead.dateDeEchange);
+
+  // Un lead est considéré comme déjà contacté s'il a une date de contact,
+  // ou si un appel/WhatsApp a été enregistré, ou si son statut n'est plus "Nouveau" (ex: Contacté, Intéressé, Gagné, etc.)
+  const isStatutAdvanced =
+    Boolean(lead.statut) &&
+    lead.statut.toLowerCase() !== "nouveau" &&
+    lead.statut.toLowerCase() !== "en pause";
+
+  const hasRecordedContact =
+    contact1 !== null ||
+    contactDernier !== null ||
+    lead.appelTelephonique === "Oui" ||
+    lead.contacteSurWhatsapp === "Oui" ||
+    isStatutAdvanced;
 
   if (
-    contact1 === null &&
+    !hasRecordedContact &&
     dateFormulaire !== null &&
     Date.now() - dateFormulaire.getTime() > NEVER_CONTACTED_THRESHOLD_MS
   ) {
