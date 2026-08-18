@@ -43,15 +43,10 @@ const CANAL_OPTIONS = [
 ];
 
 const TYPE_BIEN_OPTIONS = [
-  "Appartement",
-  "Villa",
+  "Immobilier",
+  "Cabinet Médical",
+  "Ecole",
   "Bureau",
-  "Local commercial",
-  "Terrain",
-  "Résidence",
-  "Cabinet",
-  "Hôtel",
-  "Riad",
   "Autre",
 ];
 

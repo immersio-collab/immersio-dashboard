@@ -36,15 +36,10 @@ export type LeadCanal =
  * Type de bien immobilier visité.
  */
 export type LeadTypeBien =
-  | "Appartement"
-  | "Villa"
+  | "Immobilier"
+  | "Cabinet Médical"
+  | "Ecole"
   | "Bureau"
-  | "Local commercial"
-  | "Terrain"
-  | "Résidence"
-  | "Cabinet"
-  | "Hôtel"
-  | "Riad"
   | "Autre"
   | "";
 

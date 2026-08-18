@@ -55,6 +55,22 @@ const CANAL_OPTIONS = [
   "Autre",
 ] as const;
 
+const TYPE_BIEN_OPTIONS = [
+  "Immobilier",
+  "Cabinet Médical",
+  "Ecole",
+  "Bureau",
+  "Autre",
+] as const;
+
+const VILLE_OPTIONS = [
+  "Rabat",
+  "Casablanca",
+  "Kénitra",
+  "Tanger",
+  "Autre ville",
+] as const;
+
 type SortKey = "dateFormulaire" | "statut" | "nom";
 type SortDir = "asc" | "desc";
 
@@ -193,6 +209,8 @@ export function LeadsTable({
   );
   const [isStatutDropdownOpen, setIsStatutDropdownOpen] = useState(false);
   const [filterCanal, setFilterCanal] = useState("");
+  const [filterVille, setFilterVille] = useState("");
+  const [filterTypeBien, setFilterTypeBien] = useState("");
   const [showDoublons, setShowDoublons] = useState(false);
   const [showEnRetard, setShowEnRetard] = useState(
     initialFilter === "retard"
@@ -274,6 +292,21 @@ export function LeadsTable({
       result = result.filter((l) => l.canal === filterCanal);
     }
 
+    // Ville filter
+    if (filterVille) {
+      if (filterVille === "Autre ville") {
+        const mainCities = ["Rabat", "Casablanca", "Kénitra", "Tanger"];
+        result = result.filter((l) => !mainCities.includes(l.ville || ""));
+      } else {
+        result = result.filter((l) => l.ville === filterVille);
+      }
+    }
+
+    // Type de bien filter
+    if (filterTypeBien) {
+      result = result.filter((l) => l.typeDeBien === filterTypeBien);
+    }
+
     // Text search: nom, téléphone, ville
     const q = search.trim().toLowerCase();
     if (q) {
@@ -306,6 +339,8 @@ export function LeadsTable({
     search,
     filterStatuts,
     filterCanal,
+    filterVille,
+    filterTypeBien,
     showDoublons,
     showEnRetard,
     sortKey,
@@ -416,7 +451,7 @@ export function LeadsTable({
   const totalActive = leads.filter(
     (l) => l.doublon !== "⚠ Doublon"
   ).length;
-  const isFiltered = !!search || filterStatuts.length > 0 || !!filterCanal;
+  const isFiltered = !!search || filterStatuts.length > 0 || !!filterCanal || !!filterVille || !!filterTypeBien;
 
   return (
     <div className="space-y-3 flex flex-col flex-1 min-h-0">
@@ -508,6 +543,38 @@ export function LeadsTable({
             {CANAL_OPTIONS.map((c) => (
               <option key={c} value={c}>
                 {c}
+              </option>
+            ))}
+          </select>
+
+          {/* Ville filter */}
+          <select
+            id="leads-filter-ville"
+            value={filterVille}
+            onChange={(e) => setFilterVille(e.target.value)}
+            className="bg-surface border border-border hover:bg-surface-muted transition-colors rounded-md text-sm h-9 px-3 pr-8 min-w-[160px]"
+            aria-label="Filtrer par ville"
+          >
+            <option value="">Toutes les villes</option>
+            {VILLE_OPTIONS.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+
+          {/* Type de bien filter */}
+          <select
+            id="leads-filter-type-bien"
+            value={filterTypeBien}
+            onChange={(e) => setFilterTypeBien(e.target.value)}
+            className="bg-surface border border-border hover:bg-surface-muted transition-colors rounded-md text-sm h-9 px-3 pr-8 min-w-[160px]"
+            aria-label="Filtrer par type de bien"
+          >
+            <option value="">Tous les types de biens</option>
+            {TYPE_BIEN_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
               </option>
             ))}
           </select>
