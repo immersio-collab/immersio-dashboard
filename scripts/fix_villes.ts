@@ -14,7 +14,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-function normalizeCity(city) {
+function normalizeCity(city: string | null | undefined) {
   if (!city) return null;
   const v = city.trim().toLowerCase();
   

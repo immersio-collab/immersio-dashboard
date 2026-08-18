@@ -14,7 +14,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-function normalizeType(type) {
+function normalizeType(type: string | null | undefined) {
   if (!type) return "Autre";
   const v = type.trim().toLowerCase();
   

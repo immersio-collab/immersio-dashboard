@@ -128,6 +128,9 @@ export interface Lead {
   /** "Oui" | "Non" | "" — devis envoyé. */
   devisEnvoye: string;
 
+  /** URL du devis PDF stocké sur Supabase Storage. */
+  devisUrl?: string;
+
   /** "Oui" | "Non" | "" — démo/visite virtuelle envoyée. */
   demoEnvoye: string;
 

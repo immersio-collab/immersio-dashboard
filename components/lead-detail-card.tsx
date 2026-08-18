@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   X,
@@ -13,6 +13,10 @@ import {
   RefreshCw,
   Clock,
   Copy,
+  FileText,
+  Upload,
+  Trash2,
+  ExternalLink,
 } from "lucide-react";
 import type { Lead, LeadAlertKind } from "@/types";
 import { getLeadAlerts } from "@/lib/lead-alerts";
@@ -187,6 +191,10 @@ export function LeadDetailCard({
   );
   const [errorMessage, setErrorMessage] = useState("");
 
+  const devisInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingDevis, setIsUploadingDevis] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const VILLE_OPTIONS = ["Rabat", "Casablanca", "Kénitra"];
 
   const [isCustomCanal, setIsCustomCanal] = useState(
@@ -262,6 +270,74 @@ export function LeadDetailCard({
     handleChange(key, value ? "Oui" : "Non");
   }
 
+  async function handleDevisUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+      setUploadError("Seuls les fichiers PDF sont acceptés.");
+      return;
+    }
+
+    setIsUploadingDevis(true);
+    setUploadError(null);
+
+    try {
+      const data = new FormData();
+      data.append("file", file);
+
+      const res = await fetch(`/api/leads/${lead.leadId}/devis`, {
+        method: "POST",
+        body: data,
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || "Erreur lors de l'envoi du devis.");
+      }
+
+      const json = await res.json();
+      setFormData((prev) => ({
+        ...prev,
+        devisUrl: json.devisUrl,
+        devisEnvoye: "Oui",
+      }));
+      router.refresh();
+    } catch (err: any) {
+      setUploadError(err.message || "Échec de l'importation.");
+    } finally {
+      setIsUploadingDevis(false);
+      if (devisInputRef.current) devisInputRef.current.value = "";
+    }
+  }
+
+  async function handleDevisDelete() {
+    if (!confirm("Voulez-vous vraiment supprimer ce devis PDF ?")) return;
+
+    setIsUploadingDevis(true);
+    setUploadError(null);
+    try {
+      const res = await fetch(`/api/leads/${lead.leadId}/devis`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || "Erreur lors de la suppression.");
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        devisUrl: undefined,
+      }));
+      router.refresh();
+    } catch (err: any) {
+      setUploadError(err.message || "Échec de la suppression.");
+    } finally {
+      setIsUploadingDevis(false);
+    }
+  }
+
   async function handleSave() {
     const fieldsToUpdate: Partial<Lead> = {};
     const editableKeys: (keyof Lead)[] = [
@@ -277,6 +353,7 @@ export function LeadDetailCard({
       "statut",
       "contacteSurWhatsapp",
       "devisEnvoye",
+      "devisUrl",
       "demoEnvoye",
       "prixProposeMAD",
       "dateDeEchange",
@@ -666,16 +743,88 @@ export function LeadDetailCard({
             </FieldRow>
 
             <FieldRow label="Devis envoyé" id="d-devis">
-              <div className="flex items-center gap-2">
-                <ToggleSwitch
-                  id="d-devis"
-                  checked={formData.devisEnvoye === "Oui"}
-                  onChange={(val) => handleToggle("devisEnvoye", val)}
-                  label="Devis envoyé"
-                />
-                <span className="text-xs text-text-muted">
-                  {formData.devisEnvoye === "Oui" ? "Oui" : "Non"}
-                </span>
+              <div className="space-y-2 w-full">
+                <div className="flex items-center gap-2">
+                  <ToggleSwitch
+                    id="d-devis"
+                    checked={formData.devisEnvoye === "Oui"}
+                    onChange={(val) => handleToggle("devisEnvoye", val)}
+                    label="Devis envoyé"
+                  />
+                  <span className="text-xs text-text-muted">
+                    {formData.devisEnvoye === "Oui" ? "Oui" : "Non"}
+                  </span>
+                </div>
+
+                {/* PDF Devis upload / display box */}
+                <div className="pt-0.5">
+                  <input
+                    ref={devisInputRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={handleDevisUpload}
+                  />
+
+                  {formData.devisUrl ? (
+                    <div className="flex items-center justify-between gap-2 p-2 bg-surface-muted/60 border border-border rounded-md text-xs">
+                      <a
+                        href={formData.devisUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline truncate max-w-[170px]"
+                        title="Ouvrir le devis PDF"
+                      >
+                        <FileText size={14} className="flex-shrink-0 text-red-500" />
+                        <span className="truncate">Devis.pdf</span>
+                        <ExternalLink size={11} className="flex-shrink-0 opacity-70" />
+                      </a>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => devisInputRef.current?.click()}
+                          disabled={isUploadingDevis}
+                          className="p-1 hover:bg-surface rounded text-text-muted hover:text-text transition-colors"
+                          title="Remplacer le devis"
+                        >
+                          <Upload size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDevisDelete}
+                          disabled={isUploadingDevis}
+                          className="p-1 hover:bg-surface rounded text-text-muted hover:text-danger transition-colors"
+                          title="Supprimer le devis"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => devisInputRef.current?.click()}
+                      disabled={isUploadingDevis}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-dashed border-border hover:border-accent text-text-muted hover:text-text bg-surface hover:bg-surface-muted/50 rounded-md transition-colors w-full justify-center"
+                    >
+                      {isUploadingDevis ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin text-accent" />
+                          <span>Importation du PDF...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={13} className="text-text-subtle" />
+                          <span>Importer le devis (PDF)</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                  {uploadError && (
+                    <p className="text-[11px] text-danger mt-1">{uploadError}</p>
+                  )}
+                </div>
               </div>
             </FieldRow>
 
