@@ -12,6 +12,8 @@ import {
   LogOut,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { logout } from "@/lib/auth";
 
@@ -68,21 +70,37 @@ const NAV_ITEMS: NavItem[] = [
 function SidebarContent({
   pathname,
   onNavClick,
+  isCollapsed = false,
+  onToggleCollapse,
 }: {
   pathname: string;
   onNavClick?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) {
   return (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="h-14 border-b border-border px-4 flex items-center flex-shrink-0">
-        <span className="font-semibold text-accent tracking-tight">
-          Immersio
-        </span>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Logo and Collapse Button */}
+      <div className={`h-14 border-b border-border flex items-center flex-shrink-0 transition-all ${isCollapsed ? 'justify-center px-0' : 'px-4 justify-between'}`}>
+        {!isCollapsed && (
+          <span className="font-semibold text-accent tracking-tight truncate">
+            Immersio
+          </span>
+        )}
+        {onToggleCollapse && (
+          <button
+            type="button"
+            className="p-1.5 rounded text-text-muted hover:text-text hover:bg-surface-muted transition-colors"
+            onClick={onToggleCollapse}
+            aria-label={isCollapsed ? "Ouvrir la sidebar" : "Réduire la sidebar"}
+          >
+            {isCollapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+          </button>
+        )}
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {NAV_ITEMS.map((item) => {
           const isActive =
             !item.disabled &&
@@ -96,12 +114,13 @@ function SidebarContent({
             return (
               <div
                 key={item.href}
-                className="flex items-center gap-3 px-3 py-2 text-sm rounded text-text-subtle cursor-not-allowed select-none"
+                className={`flex items-center gap-3 py-2 text-sm rounded text-text-subtle cursor-not-allowed select-none transition-all ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
                 aria-disabled="true"
+                title={isCollapsed ? item.label : undefined}
               >
                 <Icon size={15} className="flex-shrink-0" aria-hidden="true" />
-                <span className="flex-1">{item.label}</span>
-                {item.soon && (
+                {!isCollapsed && <span className="flex-1 truncate">{item.label}</span>}
+                {!isCollapsed && item.soon && (
                   <span className="text-[10px] font-medium tracking-wide text-text-subtle border border-border rounded px-1 py-0.5 leading-none">
                     Bientôt
                   </span>
@@ -115,16 +134,18 @@ function SidebarContent({
               key={item.href}
               href={item.href}
               onClick={onNavClick}
+              title={isCollapsed ? item.label : undefined}
               className={[
-                "flex items-center gap-3 px-3 py-2 text-sm rounded transition-colors",
+                "flex items-center gap-3 py-2 text-sm rounded transition-all",
                 isActive
                   ? "bg-surface-subtle text-accent font-medium"
                   : "text-text-muted hover:bg-surface-muted hover:text-text",
+                isCollapsed ? 'justify-center px-0' : 'px-3'
               ].join(" ")}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon size={15} className="flex-shrink-0" aria-hidden="true" />
-              <span>{item.label}</span>
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
@@ -136,10 +157,11 @@ function SidebarContent({
           <button
             type="submit"
             id="sidebar-logout-btn"
-            className="flex w-full items-center gap-3 px-3 py-2 text-sm rounded text-text-muted hover:bg-surface-muted hover:text-text transition-colors"
+            title={isCollapsed ? "Déconnexion" : undefined}
+            className={`flex w-full items-center gap-3 py-2 text-sm rounded text-text-muted hover:bg-surface-muted hover:text-text transition-all ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
           >
             <LogOut size={15} className="flex-shrink-0" aria-hidden="true" />
-            <span>Déconnexion</span>
+            {!isCollapsed && <span className="truncate">Déconnexion</span>}
           </button>
         </form>
       </div>
@@ -167,16 +189,21 @@ function getPageTitle(pathname: string): string {
 export function SidebarNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const pageTitle = getPageTitle(pathname);
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="h-screen overflow-hidden flex bg-background">
       {/* ---- Desktop sidebar (fixed, always visible) ---- */}
       <aside
         id="dashboard-sidebar"
-        className="hidden md:flex flex-col w-56 border-r border-border bg-surface flex-shrink-0"
+        className={`hidden md:flex flex-col h-full border-r border-border bg-surface flex-shrink-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-56'}`}
       >
-        <SidebarContent pathname={pathname} />
+        <SidebarContent 
+          pathname={pathname} 
+          isCollapsed={isCollapsed} 
+          onToggleCollapse={() => setIsCollapsed(!isCollapsed)} 
+        />
       </aside>
 
       {/* ---- Mobile overlay + drawer ---- */}
@@ -213,11 +240,12 @@ export function SidebarNav({ children }: { children: React.ReactNode }) {
         <SidebarContent
           pathname={pathname}
           onNavClick={() => setMobileOpen(false)}
+          isCollapsed={false}
         />
       </aside>
 
       {/* ---- Main content area ---- */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Header */}
         <header className="h-14 border-b border-border px-4 md:px-6 flex items-center gap-4 flex-shrink-0 bg-surface">
           {/* Burger button — mobile only */}

@@ -82,7 +82,7 @@
   }
 
   .input-base {
-    @apply block w-full px-3 py-2 text-sm;
+    @apply block w-full px-3 py-1 text-sm;
   }
 
   .card {

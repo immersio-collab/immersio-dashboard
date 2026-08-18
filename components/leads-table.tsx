@@ -28,8 +28,6 @@ const STATUT_OPTIONS = [
   "Nouveau",
   "Contacté",
   "Intéressé",
-  "Devis envoyé",
-  "Démo envoyée",
   "Négociation",
   "Gagné",
   "Perdu",
@@ -40,8 +38,6 @@ const STATUS_STYLES: Record<string, string> = {
   Nouveau: "bg-blue-50 text-blue-700 border-blue-200",
   Contacté: "bg-slate-50 text-slate-700 border-slate-200",
   Intéressé: "bg-amber-50 text-amber-700 border-amber-200",
-  "Devis envoyé": "bg-purple-50 text-purple-700 border-purple-200",
-  "Démo envoyée": "bg-pink-50 text-pink-700 border-pink-200",
   Négociation: "bg-indigo-50 text-indigo-700 border-indigo-200",
   Gagné: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Perdu: "bg-rose-50 text-rose-700 border-rose-200",
@@ -185,7 +181,8 @@ export function LeadsTable({
   // ── State ──────────────────────────────────────────────────────────────────
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [search, setSearch] = useState("");
-  const [filterStatut, setFilterStatut] = useState("");
+  const [filterStatuts, setFilterStatuts] = useState<string[]>([]);
+  const [isStatutDropdownOpen, setIsStatutDropdownOpen] = useState(false);
   const [filterCanal, setFilterCanal] = useState("");
   const [showDoublons, setShowDoublons] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("dateFormulaire");
@@ -237,8 +234,8 @@ export function LeadsTable({
     }
 
     // Statut filter
-    if (filterStatut) {
-      result = result.filter((l) => l.statut === filterStatut);
+    if (filterStatuts.length > 0) {
+      result = result.filter((l) => filterStatuts.includes(l.statut));
     }
 
     // Canal filter
@@ -276,7 +273,7 @@ export function LeadsTable({
   }, [
     leads,
     search,
-    filterStatut,
+    filterStatuts,
     filterCanal,
     showDoublons,
     sortKey,
@@ -372,7 +369,7 @@ export function LeadsTable({
   const totalActive = leads.filter(
     (l) => l.doublon !== "⚠ Doublon"
   ).length;
-  const isFiltered = !!search || !!filterStatut || !!filterCanal;
+  const isFiltered = !!search || filterStatuts.length > 0 || !!filterCanal;
 
   return (
     <div className="space-y-3">
@@ -397,20 +394,59 @@ export function LeadsTable({
         </div>
 
         {/* Statut filter */}
-        <select
-          id="leads-filter-statut"
-          value={filterStatut}
-          onChange={(e) => setFilterStatut(e.target.value)}
-          className="input-base text-sm h-9 pr-8"
-          aria-label="Filtrer par statut"
-        >
-          <option value="">Tous les statuts</option>
-          {STATUT_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsStatutDropdownOpen(!isStatutDropdownOpen)}
+            className="input-base text-sm h-9 px-3 flex items-center justify-between gap-2 min-w-[150px]"
+            aria-label="Filtrer par statut"
+          >
+            <span className="truncate max-w-[120px]">
+              {filterStatuts.length === 0
+                ? "Tous les statuts"
+                : filterStatuts.length === 1
+                ? filterStatuts[0]
+                : `${filterStatuts.length} statuts`}
+            </span>
+            <ChevronDown size={14} className="text-text-subtle flex-shrink-0" aria-hidden="true" />
+          </button>
+          
+          {isStatutDropdownOpen && (
+            <>
+              {/* Invisible backdrop to close dropdown when clicking outside */}
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setIsStatutDropdownOpen(false)}
+                aria-hidden="true"
+              />
+              <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-border rounded-md shadow-lg z-20 py-1.5 max-h-64 overflow-auto">
+                {STATUT_OPTIONS.map((s) => {
+                  const isChecked = filterStatuts.includes(s);
+                  return (
+                    <label
+                      key={s}
+                      className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-surface-muted cursor-pointer text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setFilterStatuts((prev) =>
+                            prev.includes(s)
+                              ? prev.filter((x) => x !== s)
+                              : [...prev, s]
+                          );
+                        }}
+                        className="rounded border-border text-accent focus:ring-accent w-3.5 h-3.5 flex-shrink-0"
+                      />
+                      <span className="truncate">{s}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Canal filter */}
         <select

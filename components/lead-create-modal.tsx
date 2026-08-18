@@ -13,8 +13,6 @@ const STATUT_OPTIONS = [
   "Nouveau",
   "Contacté",
   "Intéressé",
-  "Devis envoyé",
-  "Démo envoyée",
   "Négociation",
   "Gagné",
   "Perdu",

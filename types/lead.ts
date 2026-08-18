@@ -52,8 +52,6 @@ export type LeadStatut =
   | "Nouveau"
   | "Contacté"
   | "Intéressé"
-  | "Devis envoyé"
-  | "Démo envoyée"
   | "Négociation"
   | "Gagné"
   | "Perdu"
