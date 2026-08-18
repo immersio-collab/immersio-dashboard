@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronUp,
   ChevronDown,
@@ -181,6 +182,8 @@ export function LeadsTable({
   initialSelectedId,
   initialFilter,
 }: LeadsTableProps) {
+  const searchParamsHook = useSearchParams();
+
   // ── State ──────────────────────────────────────────────────────────────────
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [search, setSearch] = useState("");
@@ -221,6 +224,18 @@ export function LeadsTable({
       );
     });
   }, [initialLeads]);
+
+  // Sync filters from URL query parameters (triggered by header icons)
+  useEffect(() => {
+    const filterQuery = searchParamsHook.get("filter");
+    if (filterQuery === "nouveaux") {
+      setFilterStatuts(["Nouveau"]);
+      setShowEnRetard(false);
+    } else if (filterQuery === "retard") {
+      setShowEnRetard(true);
+      setFilterStatuts([]);
+    }
+  }, [searchParamsHook]);
 
   // ── Sort handler ────────────────────────────────────────────────────────────
   function toggleSort(col: SortKey) {
@@ -566,7 +581,7 @@ export function LeadsTable({
       )}
 
       {/* ── Master-Detail layout ── */}
-      <div className="flex gap-0 h-[calc(100vh-180px)]">
+      <div className="flex gap-0 flex-1 min-h-0">
         {/* ── LEFT: Table ── */}
         <div
           className={[
@@ -576,7 +591,7 @@ export function LeadsTable({
               : "w-full",
           ].join(" ")}
         >
-          <div className="overflow-x-auto h-full">
+          <div className="overflow-auto h-full">
             <table
               className="w-full text-sm"
               aria-label="Liste des leads"

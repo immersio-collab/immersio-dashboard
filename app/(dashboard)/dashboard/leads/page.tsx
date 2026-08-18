@@ -27,7 +27,7 @@ export default async function LeadsPage({
   const leads = await getLeads();
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col flex-1 min-h-0 space-y-4">
       <LeadsTable
         initialLeads={leads}
         initialFilter={searchParams.filter}

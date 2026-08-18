@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard,
@@ -198,6 +198,7 @@ export function SidebarNav({
   retardCount?: number;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pageTitle = getPageTitle(pathname);
@@ -282,8 +283,8 @@ export function SidebarNav({
           {/* Notification Icons */}
           <div className="flex items-center gap-3">
             {/* Leads en retard */}
-            <Link
-              href="/dashboard/leads?filter=retard"
+            <button
+              onClick={() => router.push(`/dashboard/leads?filter=retard&t=${Date.now()}`)}
               className="relative p-2 text-text-muted hover:text-text hover:bg-surface-muted rounded-md transition-colors"
               title="Leads en retard de relance"
             >
@@ -294,11 +295,11 @@ export function SidebarNav({
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-surface"></span>
                 </span>
               )}
-            </Link>
+            </button>
 
             {/* Nouveaux leads */}
-            <Link
-              href="/dashboard/leads?filter=nouveaux"
+            <button
+              onClick={() => router.push(`/dashboard/leads?filter=nouveaux&t=${Date.now()}`)}
               className="relative p-2 text-text-muted hover:text-text hover:bg-surface-muted rounded-md transition-colors"
               title="Nouveaux leads"
             >
@@ -309,12 +310,12 @@ export function SidebarNav({
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 border border-surface"></span>
                 </span>
               )}
-            </Link>
+            </button>
           </div>
         </header>
 
         {/* Scrollable main content */}
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <main className="flex-1 p-6 overflow-auto flex flex-col min-h-0">{children}</main>
       </div>
     </div>
   );
