@@ -1,4 +1,5 @@
 import { SidebarNav } from "@/components/sidebar-nav";
+import { getLeads, getLeadAlerts } from "@/lib/leads";
 
 /**
  * Dashboard route-group layout.
@@ -11,10 +12,21 @@ import { SidebarNav } from "@/components/sidebar-nav";
  * - The sidebar/header interactivity (active link, mobile drawer) is
  *   delegated to the `SidebarNav` Client Component, keeping the split clean.
  */
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <SidebarNav>{children}</SidebarNav>;
+  const leads = await getLeads();
+  
+  const nouveauxCount = leads.filter((l) => l.statut === "Nouveau").length;
+  const retardCount = leads.filter((l) => 
+    getLeadAlerts(l).some((alert) => alert.kind === "relance-en-retard")
+  ).length;
+
+  return (
+    <SidebarNav nouveauxCount={nouveauxCount} retardCount={retardCount}>
+      {children}
+    </SidebarNav>
+  );
 }

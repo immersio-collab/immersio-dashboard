@@ -172,19 +172,27 @@ export interface LeadsTableProps {
   initialLeads: Lead[];
   /** Lead ID to open in the detail card on mount (from ?id= query param). */
   initialSelectedId?: string;
+  /** Initial filter to apply from header notification clicks (nouveaux, retard). */
+  initialFilter?: string;
 }
 
 export function LeadsTable({
   initialLeads,
   initialSelectedId,
+  initialFilter,
 }: LeadsTableProps) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [search, setSearch] = useState("");
-  const [filterStatuts, setFilterStatuts] = useState<string[]>([]);
+  const [filterStatuts, setFilterStatuts] = useState<string[]>(
+    initialFilter === "nouveaux" ? ["Nouveau"] : []
+  );
   const [isStatutDropdownOpen, setIsStatutDropdownOpen] = useState(false);
   const [filterCanal, setFilterCanal] = useState("");
   const [showDoublons, setShowDoublons] = useState(false);
+  const [showEnRetard, setShowEnRetard] = useState(
+    initialFilter === "retard"
+  );
   const [sortKey, setSortKey] = useState<SortKey>("dateFormulaire");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(() => {
@@ -233,6 +241,13 @@ export function LeadsTable({
       result = result.filter((l) => l.doublon !== "⚠ Doublon");
     }
 
+    // En retard filter
+    if (showEnRetard) {
+      result = result.filter((l) =>
+        getLeadAlerts(l).some((a) => a.kind === "relance-en-retard")
+      );
+    }
+
     // Statut filter
     if (filterStatuts.length > 0) {
       result = result.filter((l) => filterStatuts.includes(l.statut));
@@ -276,6 +291,7 @@ export function LeadsTable({
     filterStatuts,
     filterCanal,
     showDoublons,
+    showEnRetard,
     sortKey,
     sortDir,
   ]);
@@ -283,6 +299,15 @@ export function LeadsTable({
   // Count leads hidden by doublon filter
   const doublonCount = useMemo(
     () => leads.filter((l) => l.doublon === "⚠ Doublon").length,
+    [leads]
+  );
+
+  // Count leads en retard
+  const retardCount = useMemo(
+    () =>
+      leads.filter((l) =>
+        getLeadAlerts(l).some((a) => a.kind === "relance-en-retard")
+      ).length,
     [leads]
   );
 
@@ -463,6 +488,26 @@ export function LeadsTable({
             </option>
           ))}
         </select>
+
+        {/* En retard toggle */}
+        <button
+          id="leads-toggle-retard"
+          type="button"
+          onClick={() => setShowEnRetard((v) => !v)}
+          className={[
+            "btn-secondary text-xs h-9 px-3 flex items-center gap-1.5",
+            showEnRetard ? "bg-red-50 text-red-700 border-red-200" : "",
+          ].join(" ")}
+          aria-pressed={showEnRetard}
+        >
+          <Clock size={12} aria-hidden="true" />
+          En retard
+          {retardCount > 0 && (
+            <span className={showEnRetard ? "text-red-700" : "text-text-subtle"}>
+              ({retardCount})
+            </span>
+          )}
+        </button>
 
         {/* Doublon toggle */}
         <button

@@ -14,6 +14,8 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Bell,
+  Clock,
 } from "lucide-react";
 import { logout } from "@/lib/auth";
 
@@ -186,7 +188,15 @@ function getPageTitle(pathname: string): string {
 /* Main export: full sidebar + header shell                             */
 /* ------------------------------------------------------------------ */
 
-export function SidebarNav({ children }: { children: React.ReactNode }) {
+export function SidebarNav({ 
+  children,
+  nouveauxCount = 0,
+  retardCount = 0
+}: { 
+  children: React.ReactNode;
+  nouveauxCount?: number;
+  retardCount?: number;
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -263,14 +273,47 @@ export function SidebarNav({ children }: { children: React.ReactNode }) {
 
           {/* Page title */}
           <h1
-            className="text-sm font-medium text-text flex-1"
-            id="page-heading"
+            className="text-lg font-medium text-text flex-1 truncate"
+            id="dashboard-page-title"
           >
             {pageTitle}
           </h1>
+
+          {/* Notification Icons */}
+          <div className="flex items-center gap-3">
+            {/* Leads en retard */}
+            <Link
+              href="/dashboard/leads?filter=retard"
+              className="relative p-2 text-text-muted hover:text-text hover:bg-surface-muted rounded-md transition-colors"
+              title="Leads en retard de relance"
+            >
+              <Clock size={18} />
+              {retardCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-surface"></span>
+                </span>
+              )}
+            </Link>
+
+            {/* Nouveaux leads */}
+            <Link
+              href="/dashboard/leads?filter=nouveaux"
+              className="relative p-2 text-text-muted hover:text-text hover:bg-surface-muted rounded-md transition-colors"
+              title="Nouveaux leads"
+            >
+              <Bell size={18} />
+              {nouveauxCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 border border-surface"></span>
+                </span>
+              )}
+            </Link>
+          </div>
         </header>
 
-        {/* Page content */}
+        {/* Scrollable main content */}
         <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>
     </div>

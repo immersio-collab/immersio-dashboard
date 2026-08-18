@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: { id?: string };
+  searchParams: { id?: string; filter?: string };
 }) {
   const leads = await getLeads();
 
@@ -30,6 +30,7 @@ export default async function LeadsPage({
     <div className="space-y-4">
       <LeadsTable
         initialLeads={leads}
+        initialFilter={searchParams.filter}
         initialSelectedId={searchParams.id}
       />
     </div>
