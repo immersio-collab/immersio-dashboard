@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { X, Archive, Loader2, Check, AlertTriangle } from "lucide-react";
 import type { Lead } from "@/types";
 import { getLeadAlerts } from "@/lib/lead-alerts";
+import { RelanceVariationsModal } from "@/components/relance-variations-modal";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -420,20 +421,26 @@ export function LeadDrawer({
                 const isChecked = Boolean(formData[faitKey]);
                 
                 return (
-                  <div key={num} className="grid grid-cols-[140px_1fr_auto] gap-2 items-center">
+                  <div key={num} className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <label className="text-xs text-text-subtle">Relance {num}</label>
                     <div className="text-xs text-text-muted">
                       {formData[autoKey] ? (fmtDateForInput(formData[autoKey] as string) || (formData[autoKey] as string)) : "—"}
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isChecked}
-                        onChange={(e) => handleRelanceToggle(num as 1 | 2 | 3, e.target.checked)}
+                    <div className="flex items-center gap-1.5">
+                      <RelanceVariationsModal
+                        relanceType={`relance${num}` as "relance1" | "relance2" | "relance3"}
+                        phoneNumber={formData.telephone}
                       />
-                      <div className="w-9 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={isChecked}
+                          onChange={(e) => handleRelanceToggle(num as 1 | 2 | 3, e.target.checked)}
+                        />
+                        <div className="w-9 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                      </label>
+                    </div>
                   </div>
                 );
               })}
