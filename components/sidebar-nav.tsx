@@ -232,7 +232,6 @@ export function SidebarNav({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isRappelPopoverOpen, setIsRappelPopoverOpen] = useState(false);
   const pageTitle = getPageTitle(pathname);
 
   const dueRappelsCount = activeRappels.filter((r) => r.isDue || r.isToday).length;
@@ -316,120 +315,24 @@ export function SidebarNav({
 
           {/* Notification Icons */}
           <div className="flex items-center gap-2 relative">
-            {/* Rendez-vous / Échéances importantes avec Popover */}
-            <div className="relative">
-              <button
-                onClick={() => setIsRappelPopoverOpen(!isRappelPopoverOpen)}
-                className={`relative p-2 rounded-md transition-colors ${
-                  isRappelPopoverOpen
-                    ? "bg-surface-muted text-accent"
-                    : "text-text-muted hover:text-text hover:bg-surface-muted"
-                }`}
-                title="Rendez-vous et dates importantes"
-                aria-label="Rendez-vous et dates importantes"
-              >
-                <CalendarClock size={18} />
-                {dueRappelsCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 border border-surface"></span>
-                  </span>
-                )}
-                {activeRappels.length > 0 && dueRappelsCount === 0 && (
-                  <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-blue-500 border border-surface" />
-                )}
-              </button>
-
-              {/* Popover list */}
-              {isRappelPopoverOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setIsRappelPopoverOpen(false)}
-                    aria-hidden="true"
-                  />
-                  <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-surface border border-border rounded-lg shadow-xl z-40 overflow-hidden animate-in zoom-in-95 duration-150">
-                    <div className="px-4 py-3 border-b border-border bg-surface-muted/60 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CalendarClock size={16} className="text-accent" />
-                        <span className="text-xs font-semibold text-text">
-                          Rendez-vous & Échéances
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-medium text-text-subtle">
-                        {activeRappels.length} à traiter
-                      </span>
-                    </div>
-
-                    <div className="max-h-72 overflow-y-auto divide-y divide-border">
-                      {activeRappels.length === 0 ? (
-                        <div className="p-6 text-center text-xs text-text-muted">
-                          Aucun rendez-vous ou rappel planifié en attente.
-                        </div>
-                      ) : (
-                        activeRappels.map((rappel) => (
-                          <div
-                            key={rappel.leadId}
-                            onClick={() => {
-                              setIsRappelPopoverOpen(false);
-                              router.push(`/dashboard/leads?id=${rappel.leadId}&t=${Date.now()}`);
-                            }}
-                            className={`p-3 hover:bg-surface-muted cursor-pointer transition-colors flex items-start justify-between gap-2.5 ${
-                              rappel.isDue
-                                ? "bg-rose-50/30"
-                                : rappel.isToday
-                                ? "bg-amber-50/30"
-                                : ""
-                            }`}
-                          >
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-semibold text-text truncate">
-                                  {rappel.nom}
-                                </span>
-                                {rappel.isDue && (
-                                  <span className="text-[9px] bg-rose-100 text-rose-800 font-medium px-1.5 py-0.2 rounded border border-rose-200">
-                                    Échu
-                                  </span>
-                                )}
-                                {rappel.isToday && !rappel.isDue && (
-                                  <span className="text-[9px] bg-amber-100 text-amber-800 font-medium px-1.5 py-0.2 rounded border border-amber-200">
-                                    Aujourd&apos;hui
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] font-medium text-accent flex items-center gap-1">
-                                <Calendar size={11} />
-                                {formatRappelDate(rappel.rappelDate)}
-                              </p>
-                              {rappel.rappelNote && (
-                                <p className="text-[11px] text-text-muted line-clamp-1 italic">
-                                  &ldquo;{rappel.rappelNote}&rdquo;
-                                </p>
-                              )}
-                            </div>
-                            <ChevronRight size={14} className="text-text-subtle mt-1 flex-shrink-0" />
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    <div className="p-2 border-t border-border bg-surface-muted/30 text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsRappelPopoverOpen(false);
-                          router.push(`/dashboard/leads?filter=rappels&t=${Date.now()}`);
-                        }}
-                        className="text-xs font-medium text-accent hover:underline w-full py-1"
-                      >
-                        Filtrer tous les rappels dans le tableau
-                      </button>
-                    </div>
-                  </div>
-                </>
+            {/* Rendez-vous / Échéances importantes */}
+            <button
+              onClick={() => router.push(`/dashboard/leads?filter=rappels&t=${Date.now()}`)}
+              className="relative p-2 text-text-muted hover:text-text hover:bg-surface-muted rounded-md transition-colors"
+              title="Rendez-vous et dates importantes"
+              aria-label="Rendez-vous et dates importantes"
+            >
+              <CalendarClock size={18} />
+              {dueRappelsCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 border border-surface"></span>
+                </span>
               )}
-            </div>
+              {activeRappels.length > 0 && dueRappelsCount === 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-blue-500 border border-surface" />
+              )}
+            </button>
 
             {/* Leads en retard */}
             <button

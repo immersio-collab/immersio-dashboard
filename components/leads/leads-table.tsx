@@ -283,7 +283,7 @@ export function LeadsTable({
     !initialFilter || initialFilter === "retard"
   );
   const [showRappels, setShowRappels] = useState(
-    initialFilter === "rappels"
+    !initialFilter || initialFilter === "rappels"
   );
   const [sortKey, setSortKey] = useState<SortKey>("dateFormulaire");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -352,19 +352,14 @@ export function LeadsTable({
       result = result.filter((l) => l.doublon !== "⚠ Doublon");
     }
 
-    // Rappels filter
-    if (showRappels) {
-      result = result.filter((l) => hasActiveRappel(l));
-    }
-
-    // Nouveaux / En retard combined filter
-    if (showNouveaux || showEnRetard) {
+    // Combined Quick Filters (Union / OR logic)
+    if (showRappels || showNouveaux || showEnRetard) {
       result = result.filter((l) => {
-        const isNouveau = l.statut === "Nouveau";
-        const isRetard = getLeadAlerts(l).some((a) => a.kind === "relance-en-retard");
-        if (showNouveaux && showEnRetard) return isNouveau || isRetard;
-        if (showNouveaux) return isNouveau;
-        return isRetard;
+        let keep = false;
+        if (showRappels && hasActiveRappel(l)) keep = true;
+        if (showNouveaux && l.statut === "Nouveau") keep = true;
+        if (showEnRetard && getLeadAlerts(l).some((a) => a.kind === "relance-en-retard")) keep = true;
+        return keep;
       });
     }
 
@@ -423,22 +418,26 @@ export function LeadsTable({
     // 3. Upcoming active rappels
     // 4. Default user-chosen column sort
     const sorted = [...result].sort((a, b) => {
-      const aDue = isRappelDue(a);
-      const bDue = isRappelDue(b);
-      if (aDue && !bDue) return -1;
-      if (!aDue && bDue) return 1;
+      const aDueRappel = isRappelDue(a);
+      const bDueRappel = isRappelDue(b);
+      const aRetard = getLeadAlerts(a).some((x) => x.kind === "relance-en-retard");
+      const bRetard = getLeadAlerts(b).some((x) => x.kind === "relance-en-retard");
+      
+      const aUrgent = aDueRappel || aRetard;
+      const bUrgent = bDueRappel || bRetard;
+
+      if (aUrgent && !bUrgent) return -1;
+      if (!aUrgent && bUrgent) return 1;
 
       const aToday = isRappelToday(a);
       const bToday = isRappelToday(b);
       if (aToday && !bToday) return -1;
       if (!aToday && bToday) return 1;
 
-      if (showNouveaux && showEnRetard) {
-        const aNouveau = a.statut === "Nouveau";
-        const bNouveau = b.statut === "Nouveau";
-        if (aNouveau && !bNouveau) return -1;
-        if (!aNouveau && bNouveau) return 1;
-      }
+      const aNouveau = a.statut === "Nouveau";
+      const bNouveau = b.statut === "Nouveau";
+      if (aNouveau && !bNouveau) return -1;
+      if (!aNouveau && bNouveau) return 1;
 
       let cmp = 0;
       if (sortKey === "dateFormulaire") {
