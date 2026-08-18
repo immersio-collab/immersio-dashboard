@@ -43,14 +43,33 @@ export async function getLeads(): Promise<Lead[]> {
   return (data || []) as Lead[];
 }
 
+function sanitizeFieldsForDb(fields: Partial<Lead>) {
+  const sanitized: any = { ...fields };
+  const dateFields = [
+    "dateFormulaire",
+    "date1erContact",
+    "dateDeEchange",
+    "relance1Auto",
+    "relance2Auto",
+    "relance3Auto",
+  ];
+  for (const field of dateFields) {
+    if (sanitized[field] === "") {
+      sanitized[field] = null;
+    }
+  }
+  return sanitized;
+}
+
 export async function updateLead(
   leadId: string,
   fields: Partial<Lead>
 ): Promise<void> {
   const supabase = getSupabaseClient();
+  const sanitizedFields = sanitizeFieldsForDb(fields);
   const { error } = await supabase
     .from("leads")
-    .update(fields)
+    .update(sanitizedFields)
     .eq("leadId", leadId);
 
   if (error) {
@@ -72,11 +91,12 @@ export async function archiveLead(leadId: string): Promise<void> {
 
 export async function createLead(fields: Partial<Lead>): Promise<any> {
   const supabase = getSupabaseClient();
+  const sanitizedFields = sanitizeFieldsForDb(fields);
   
   // Create a minimal new lead if no ID is provided, typically clients should pass leadId
   const leadToInsert = {
-    ...fields,
-    leadId: fields.leadId || `L-${Date.now()}`, 
+    ...sanitizedFields,
+    leadId: sanitizedFields.leadId || `L-${Date.now()}`, 
     archive: "Non"
   };
 

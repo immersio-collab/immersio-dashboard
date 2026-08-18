@@ -136,6 +136,9 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isDuplicate, setIsDuplicate] = useState(false);
 
+  const [isCustomVille, setIsCustomVille] = useState(false);
+  const [isCustomTypeBien, setIsCustomTypeBien] = useState(false);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -298,32 +301,78 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
                 </FieldRow>
 
                 <FieldRow label="Ville" id="c-ville">
-                  <input
-                    id="c-ville"
-                    type="text"
-                    value={formData.ville || ""}
-                    onChange={(e) => handleChange("ville", e.target.value)}
-                    className="input-base text-sm w-full h-8"
-                    placeholder="Ex: Casablanca"
-                  />
+                  <div className="flex flex-col gap-2 w-full">
+                    <select
+                      id="c-ville"
+                      value={isCustomVille ? "Autre" : formData.ville || ""}
+                      onChange={(e) => {
+                        if (e.target.value === "Autre") {
+                          setIsCustomVille(true);
+                          handleChange("ville", "");
+                        } else {
+                          setIsCustomVille(false);
+                          handleChange("ville", e.target.value);
+                        }
+                      }}
+                      className="input-base text-sm w-full h-8"
+                    >
+                      <option value="">—</option>
+                      <option value="Rabat">Rabat</option>
+                      <option value="Casablanca">Casablanca</option>
+                      <option value="Kénitra">Kénitra</option>
+                      <option value="Autre">Autre</option>
+                    </select>
+                    {isCustomVille && (
+                      <input
+                        id="c-ville-custom"
+                        type="text"
+                        value={formData.ville || ""}
+                        onChange={(e) => handleChange("ville", e.target.value)}
+                        className="input-base text-sm w-full h-8"
+                        placeholder="Saisissez la ville..."
+                        autoFocus
+                      />
+                    )}
+                  </div>
                 </FieldRow>
 
                 <FieldRow label="Type de bien" id="c-typeDeBien">
-                  <select
-                    id="c-typeDeBien"
-                    value={formData.typeDeBien || ""}
-                    onChange={(e) =>
-                      handleChange("typeDeBien", e.target.value)
-                    }
-                    className="input-base text-sm w-full h-8"
-                  >
-                    <option value="">—</option>
-                    {TYPE_BIEN_OPTIONS.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col gap-2 w-full">
+                    <select
+                      id="c-typeDeBien"
+                      value={isCustomTypeBien ? "Autre" : formData.typeDeBien || ""}
+                      onChange={(e) => {
+                        if (e.target.value === "Autre") {
+                          setIsCustomTypeBien(true);
+                          handleChange("typeDeBien", "");
+                        } else {
+                          setIsCustomTypeBien(false);
+                          handleChange("typeDeBien", e.target.value);
+                        }
+                      }}
+                      className="input-base text-sm w-full h-8"
+                    >
+                      <option value="">—</option>
+                      {TYPE_BIEN_OPTIONS.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    {isCustomTypeBien && (
+                      <input
+                        id="c-typeDeBien-custom"
+                        type="text"
+                        value={formData.typeDeBien || ""}
+                        onChange={(e) =>
+                          handleChange("typeDeBien", e.target.value)
+                        }
+                        className="input-base text-sm w-full h-8"
+                        placeholder="Saisissez le type de bien..."
+                        autoFocus
+                      />
+                    )}
+                  </div>
                 </FieldRow>
 
                 <FieldRow label="Surface (m²)" id="c-surface">

@@ -117,9 +117,21 @@ export function LeadDrawer({
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
+  const VILLE_OPTIONS = ["Rabat", "Casablanca", "Kénitra"];
+  const STANDARD_TYPE_BIEN = ["Appartement", "Villa", "Bureau", "Local commercial", "Terrain"];
+
+  const [isCustomVille, setIsCustomVille] = useState(
+    !!lead.ville && !VILLE_OPTIONS.includes(lead.ville)
+  );
+  const [isCustomTypeBien, setIsCustomTypeBien] = useState(
+    !!lead.typeDeBien && !STANDARD_TYPE_BIEN.includes(lead.typeDeBien)
+  );
+
   // Sync state when lead changes (e.g., after successful save + router.refresh)
   useEffect(() => {
     setFormData(lead);
+    setIsCustomVille(!!lead.ville && !VILLE_OPTIONS.includes(lead.ville));
+    setIsCustomTypeBien(!!lead.typeDeBien && !STANDARD_TYPE_BIEN.includes(lead.typeDeBien));
     // Reset status when switching leads
     setSaveStatus("idle");
   }, [lead]);
@@ -151,6 +163,8 @@ export function LeadDrawer({
       "prixProposeMAD",
       "dateDeEchange",
       "notes",
+      "ville",
+      "typeDeBien",
     ];
 
     for (const k of editableKeys) {
@@ -239,15 +253,81 @@ export function LeadDrawer({
           )}
 
           {/* Fields */}
-          <FieldSection title="Contact (Lecture seule)">
+          <FieldSection title="Contact">
             <ReadOnlyField label="Nom" value={lead.nom} />
             <ReadOnlyField label="Téléphone" value={lead.telephone} />
             <ReadOnlyField label="Canal" value={lead.canal} />
-            <ReadOnlyField label="Ville" value={lead.ville} />
+            <EditField label="Ville" id="f-ville">
+              <div className="flex flex-col gap-2 w-full">
+                <select
+                  id="f-ville"
+                  value={isCustomVille ? "Autre" : formData.ville || ""}
+                  onChange={(e) => {
+                    if (e.target.value === "Autre") {
+                      setIsCustomVille(true);
+                      handleChange("ville", "");
+                    } else {
+                      setIsCustomVille(false);
+                      handleChange("ville", e.target.value);
+                    }
+                  }}
+                  className="input-base text-sm w-full h-8"
+                >
+                  <option value="">—</option>
+                  <option value="Rabat">Rabat</option>
+                  <option value="Casablanca">Casablanca</option>
+                  <option value="Kénitra">Kénitra</option>
+                  <option value="Autre">Autre</option>
+                </select>
+                {isCustomVille && (
+                  <input
+                    type="text"
+                    value={formData.ville || ""}
+                    onChange={(e) => handleChange("ville", e.target.value)}
+                    className="input-base text-sm w-full h-8"
+                    placeholder="Saisissez la ville..."
+                    autoFocus
+                  />
+                )}
+              </div>
+            </EditField>
           </FieldSection>
 
-          <FieldSection title="Projet (Lecture seule)">
-            <ReadOnlyField label="Type de bien" value={lead.typeDeBien} />
+          <FieldSection title="Projet">
+            <EditField label="Type de bien" id="f-typeDeBien">
+              <div className="flex flex-col gap-2 w-full">
+                <select
+                  id="f-typeDeBien"
+                  value={isCustomTypeBien ? "Autre" : formData.typeDeBien || ""}
+                  onChange={(e) => {
+                    if (e.target.value === "Autre") {
+                      setIsCustomTypeBien(true);
+                      handleChange("typeDeBien", "");
+                    } else {
+                      setIsCustomTypeBien(false);
+                      handleChange("typeDeBien", e.target.value);
+                    }
+                  }}
+                  className="input-base text-sm w-full h-8"
+                >
+                  <option value="">—</option>
+                  {STANDARD_TYPE_BIEN.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                  <option value="Autre">Autre</option>
+                </select>
+                {isCustomTypeBien && (
+                  <input
+                    type="text"
+                    value={formData.typeDeBien || ""}
+                    onChange={(e) => handleChange("typeDeBien", e.target.value)}
+                    className="input-base text-sm w-full h-8"
+                    placeholder="Saisissez le type de bien..."
+                    autoFocus
+                  />
+                )}
+              </div>
+            </EditField>
             <ReadOnlyField label="Surface (m²)" value={lead.surface} />
             <ReadOnlyField label="Date formulaire" value={lead.dateFormulaire} />
             <ReadOnlyField label="Doublon" value={lead.doublon} />
