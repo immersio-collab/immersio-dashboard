@@ -275,10 +275,10 @@ export function LeadsTable({
   const [filterTypeBien, setFilterTypeBien] = useState("");
   const [filterSuivi, setFilterSuivi] = useState<string[]>([]);
   const [isSuiviDropdownOpen, setIsSuiviDropdownOpen] = useState(false);
-  const [showDoublons, setShowDoublons] = useState(false);
   const [showNouveaux, setShowNouveaux] = useState(
     !initialFilter || initialFilter === "nouveaux"
   );
+  const [showDoublons, setShowDoublons] = useState(false);
   const [showEnRetard, setShowEnRetard] = useState(
     !initialFilter || initialFilter === "retard"
   );
@@ -347,57 +347,56 @@ export function LeadsTable({
   const displayedLeads = useMemo(() => {
     let result = leads;
 
-    // Hide doublons by default unless toggle is on
-    if (!showDoublons) {
-      result = result.filter((l) => l.doublon !== "⚠ Doublon");
-    }
-
-    // Combined Quick Filters (Union / OR logic)
-    if (showRappels || showNouveaux || showEnRetard) {
-      result = result.filter((l) => {
-        let keep = false;
-        if (showRappels && hasActiveRappel(l)) keep = true;
-        if (showNouveaux && l.statut === "Nouveau") keep = true;
-        if (showEnRetard && getLeadAlerts(l).some((a) => a.kind === "relance-en-retard")) keep = true;
-        return keep;
-      });
-    }
-
-    // Statut filter
-    if (filterStatuts.length > 0) {
-      result = result.filter((l) => filterStatuts.includes(l.statut));
+    if (showDoublons) {
+      result = result.filter((l) => l.doublon === "⚠ Doublon");
     } else {
-      // Masquer les leads "Perdu" par défaut (sauf s'ils sont explicitement demandés via le filtre)
-      result = result.filter((l) => l.statut !== "Perdu");
-    }
-
-    // Suivi filter
-    if (filterSuivi.length > 0) {
-      result = result.filter((l) => {
-        return filterSuivi.every(
-          (key) => l[key as keyof Lead] === "Oui"
-        );
-      });
-    }
-
-    // Canal filter
-    if (filterCanal) {
-      result = result.filter((l) => l.canal === filterCanal);
-    }
-
-    // Ville filter
-    if (filterVille) {
-      if (filterVille === "Autre ville") {
-        const mainCities = ["Rabat", "Casablanca", "Kénitra", "Tanger"];
-        result = result.filter((l) => !mainCities.includes(l.ville || ""));
-      } else {
-        result = result.filter((l) => l.ville === filterVille);
+      // Combined Quick Filters (Union / OR logic)
+      if (showRappels || showNouveaux || showEnRetard) {
+        result = result.filter((l) => {
+          let keep = false;
+          if (showRappels && hasActiveRappel(l)) keep = true;
+          if (showNouveaux && l.statut === "Nouveau") keep = true;
+          if (showEnRetard && getLeadAlerts(l).some((a) => a.kind === "relance-en-retard")) keep = true;
+          return keep;
+        });
       }
-    }
 
-    // Type de bien filter
-    if (filterTypeBien) {
-      result = result.filter((l) => l.typeDeBien === filterTypeBien);
+      // Statut filter
+      if (filterStatuts.length > 0) {
+        result = result.filter((l) => filterStatuts.includes(l.statut));
+      } else {
+        // Masquer les leads "Perdu" par défaut (sauf s'ils sont explicitement demandés via le filtre)
+        result = result.filter((l) => l.statut !== "Perdu");
+      }
+
+      // Suivi filter
+      if (filterSuivi.length > 0) {
+        result = result.filter((l) => {
+          return filterSuivi.every(
+            (key) => l[key as keyof Lead] === "Oui"
+          );
+        });
+      }
+
+      // Canal filter
+      if (filterCanal) {
+        result = result.filter((l) => l.canal === filterCanal);
+      }
+
+      // Ville filter
+      if (filterVille) {
+        if (filterVille === "Autre ville") {
+          const mainCities = ["Rabat", "Casablanca", "Kénitra", "Tanger"];
+          result = result.filter((l) => !mainCities.includes(l.ville || ""));
+        } else {
+          result = result.filter((l) => l.ville === filterVille);
+        }
+      }
+
+      // Type de bien filter
+      if (filterTypeBien) {
+        result = result.filter((l) => l.typeDeBien === filterTypeBien);
+      }
     }
 
     // Text search: nom, téléphone, ville, rappelNote
@@ -474,6 +473,8 @@ export function LeadsTable({
     () => leads.filter((l) => hasActiveRappel(l)).length,
     [leads]
   );
+
+
 
   // Count leads hidden by doublon filter
   const doublonCount = useMemo(
@@ -887,26 +888,29 @@ export function LeadsTable({
             <span className="hidden sm:inline">En retard</span>
             {retardCount > 0 && (
               <span className={showEnRetard ? "text-red-700" : "text-text-subtle"}>
-                {retardCount}
+                        {retardCount}
               </span>
             )}
           </button>
 
-          {/* Doublon toggle */}
+          {/* Doublon quick filter */}
           <button
             id="leads-toggle-doublons"
             type="button"
             onClick={() => setShowDoublons((v) => !v)}
             className={[
-              "hidden sm:flex btn-secondary text-xs h-8 px-3 items-center gap-1.5 transition-colors",
-              showDoublons ? "bg-surface-subtle" : "",
+              "btn-secondary text-xs h-8 px-2.5 sm:px-3 flex items-center justify-center gap-1.5 transition-colors",
+              showDoublons ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" : "",
             ].join(" ")}
             aria-pressed={showDoublons}
+            title="Afficher les doublons"
           >
             <Copy size={14} aria-hidden="true" />
-            Doublons
+            <span className="hidden sm:inline">Doublons</span>
             {doublonCount > 0 && (
-              <span className="text-text-subtle">({doublonCount})</span>
+              <span className={showDoublons ? "text-blue-700" : "text-text-subtle"}>
+                {doublonCount}
+              </span>
             )}
           </button>
 
@@ -1080,7 +1084,14 @@ export function LeadsTable({
                         {/* Nom */}
                         <td className="px-2 sm:px-3 py-2 sm:py-2.5 pl-2 sm:pl-4 font-medium text-text max-w-[120px] sm:max-w-[200px]">
                           <div className="flex flex-col gap-0.5">
-                            <span className="truncate">{lead.nom || "—"}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="truncate">{lead.nom || "—"}</span>
+                              {lead.doublon === "⚠ Doublon" && (
+                                <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                                  <Copy size={10} /> Doublon
+                                </span>
+                              )}
+                            </div>
                             {hasRappel && (
                               <div className="flex items-center gap-1 mt-0.5">
                                 <span

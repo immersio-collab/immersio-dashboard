@@ -7,6 +7,7 @@
 
 import { getSupabaseClient } from "@/lib/supabase";
 import type { Lead } from "@/types";
+import { normalisePhone } from "@/lib/meta-lead-mapper";
 
 export { 
   getLeadAlerts,
@@ -114,6 +115,10 @@ export async function updateLead(
   // Frontend now handles the recalculation logic when dateDeEchange is manually changed,
   // and sends the updated relanceXAuto fields. We just save them.
   const sanitizedFields = sanitizeFieldsForDb(fields);
+  if (sanitizedFields.telephone) {
+    sanitizedFields.telephone = normalisePhone(sanitizedFields.telephone);
+  }
+  
   const { error } = await supabase
     .from("leads")
     .update(sanitizedFields)
@@ -126,6 +131,15 @@ export async function updateLead(
 
 export async function archiveLead(leadId: string): Promise<void> {
   const supabase = getSupabaseClient();
+  
+  // 1. Fetch the phone number of the lead being archived
+  const { data: leadToArchive } = await supabase
+    .from("leads")
+    .select("telephone")
+    .eq("leadId", leadId)
+    .single();
+
+  // 2. Archive the lead
   const { error } = await supabase
     .from("leads")
     .update({ archive: "Oui" }) // Soft delete marker used previously
@@ -133,6 +147,26 @@ export async function archiveLead(leadId: string): Promise<void> {
 
   if (error) {
     throw new LeadsError(`Supabase error: ${error.message}`);
+  }
+
+  // 3. Re-evaluate duplicate status for the remaining leads with the same phone
+  if (leadToArchive?.telephone) {
+    const { data: remainingLeads } = await supabase
+      .from("leads")
+      .select("leadId")
+      .eq("telephone", leadToArchive.telephone)
+      .neq("archive", "Oui");
+      
+    // If only one active lead remains with this phone, it's no longer a duplicate
+    if (remainingLeads && remainingLeads.length <= 1) {
+      // Clear the doublon flag for the remaining lead(s)
+      for (const rl of remainingLeads) {
+        await supabase
+          .from("leads")
+          .update({ doublon: null })
+          .eq("leadId", rl.leadId);
+      }
+    }
   }
 }
 
@@ -144,6 +178,9 @@ export async function createLead(fields: Partial<Lead>): Promise<any> {
   }
 
   const sanitizedFields = sanitizeFieldsForDb(fields);
+  if (sanitizedFields.telephone) {
+    sanitizedFields.telephone = normalisePhone(sanitizedFields.telephone);
+  }
   
   // Check for duplicates by phone
   let isDuplicate = false;

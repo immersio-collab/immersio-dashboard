@@ -94,7 +94,7 @@ function platformToCanal(platform?: string, isOrganic?: string): LeadCanal {
  * - Removes spaces, dashes, parentheses
  * - Ensures the +212 prefix for Moroccan numbers
  */
-function normalisePhone(raw?: string): string {
+export function normalisePhone(raw?: string): string {
   if (!raw) return "";
   // Strip the "p:" prefix from the sheet format
   let value = raw.trim();
