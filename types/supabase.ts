@@ -110,6 +110,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tours: {
+        Row: {
+          id: string
+          slug: string
+          property_name: string
+          client_name: string | null
+          sector: string | null
+          realsee_url: string | null
+          active: boolean
+          iframe: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          property_name: string
+          client_name?: string | null
+          sector?: string | null
+          realsee_url?: string | null
+          active?: boolean
+          iframe?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          property_name?: string
+          client_name?: string | null
+          sector?: string | null
+          realsee_url?: string | null
+          active?: boolean
+          iframe?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

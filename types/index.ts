@@ -22,3 +22,12 @@ export type {
   PaginationMeta,
   ListResponse,
 } from "./lead";
+
+export type {
+  Tour,
+  TourInsert,
+  TourUpdate,
+  TourSectorValue,
+} from "./tour";
+export { TOUR_SECTORS } from "./tour";
+

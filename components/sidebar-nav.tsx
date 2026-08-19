@@ -63,8 +63,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Tours",
     href: "/dashboard/tours",
     icon: Globe,
-    disabled: true,
-    soon: true,
   },
 ];
 
