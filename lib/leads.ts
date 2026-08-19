@@ -145,6 +145,22 @@ export async function createLead(fields: Partial<Lead>): Promise<any> {
 
   const sanitizedFields = sanitizeFieldsForDb(fields);
   
+  // Check for duplicates by phone
+  let isDuplicate = false;
+  
+  if (sanitizedFields.telephone) {
+    const { data: existingLeads } = await supabase
+      .from("leads")
+      .select("leadId")
+      .eq("telephone", sanitizedFields.telephone as string)
+      .limit(1);
+    
+    if (existingLeads && existingLeads.length > 0) {
+      isDuplicate = true;
+      sanitizedFields.doublon = "⚠ Doublon";
+    }
+  }
+
   // Create a minimal new lead if no ID is provided, typically clients should pass leadId
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const leadToInsert = {
@@ -164,6 +180,10 @@ export async function createLead(fields: Partial<Lead>): Promise<any> {
 
   if (error) {
     throw new LeadsError(`Supabase error: ${error.message}`);
+  }
+  
+  if (isDuplicate) {
+    return { ...data, duplicate: true };
   }
   
   return data;

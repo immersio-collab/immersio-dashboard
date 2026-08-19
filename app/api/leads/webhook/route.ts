@@ -108,6 +108,19 @@ export async function POST(req: NextRequest) {
         if (sanitised[field] === "") sanitised[field] = null;
       }
 
+      // ── 3c.1 Check for duplicates by phone ──────────────────────────────
+      if (leadData.telephone) {
+        const { data: existingDupe } = await supabase
+          .from("leads")
+          .select("leadId")
+          .eq("telephone", leadData.telephone)
+          .limit(1);
+        
+        if (existingDupe && existingDupe.length > 0) {
+          sanitised.doublon = "⚠ Doublon";
+        }
+      }
+
       // ── 3d. Insert new lead ────────────────────────────────────────────
       const { error: insertError } = await supabase
         .from("leads")
