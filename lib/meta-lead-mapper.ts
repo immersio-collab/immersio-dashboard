@@ -146,16 +146,6 @@ export function mapMetaLeadToSupabase(raw: MetaLeadPayload): Partial<Lead> {
   const dateFormulaire = isValidDate ? createdDate.toISOString() : new Date().toISOString();
   const baseDate = isValidDate ? createdDate : new Date();
 
-  // Build campaign/ad context note for traceability
-  const contextParts: string[] = [];
-  if (raw.campaign_name) contextParts.push(`Campagne: ${raw.campaign_name}`);
-  if (raw.ad_name) contextParts.push(`Ad: ${raw.ad_name}`);
-  if (raw.adset_name) contextParts.push(`Adset: ${raw.adset_name}`);
-  if (raw.form_name) contextParts.push(`Formulaire: ${raw.form_name}`);
-  const contextNote = contextParts.length > 0
-    ? `[Meta Auto-Import] ${contextParts.join(" | ")}`
-    : "[Meta Auto-Import]";
-
   return {
     // Use the id directly — it already has the "l:" prefix from the sheet
     leadId: raw.id.trim(),
@@ -182,7 +172,7 @@ export function mapMetaLeadToSupabase(raw: MetaLeadPayload): Partial<Lead> {
     relance1Fait: false,
     relance2Fait: false,
     relance3Fait: false,
-    notes: contextNote,
+    notes: "",
     archive: "Non",
   };
 }
