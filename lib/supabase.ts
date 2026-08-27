@@ -3,7 +3,11 @@ import { getSupabaseConfig } from '@/lib/config';
 
 import { Database } from '@/types/supabase';
 
-// Singleton instance of the Supabase client
+// Singleton instance of the Supabase client.
+// Note: This client runs exclusively on the server and is initialized with the 
+// secret serviceRoleKey (service_role key), which allows it to bypass Row-Level 
+// Security (RLS) policies. This is necessary because database tables have RLS 
+// enabled and direct public access is blocked.
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 
 export function getSupabaseClient() {

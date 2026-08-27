@@ -22,6 +22,7 @@
 
 export interface DashboardEnv {
   readonly NEXT_PUBLIC_SUPABASE_URL: string;
+  // Must be the secret service_role key to bypass RLS policies on the database.
   readonly SUPABASE_SERVICE_ROLE_KEY: string;
   readonly DASHBOARD_PASSWORD_HASH: string;
   readonly SESSION_SECRET: string;
