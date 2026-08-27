@@ -58,6 +58,8 @@ const TYPE_BIEN_OPTIONS = [
   "Autre",
 ];
 
+const VILLE_OPTIONS = ["Rabat", "Casablanca", "Kénitra"];
+
 const STATUS_STYLES: Record<string, string> = {
   Nouveau: "bg-blue-50 text-blue-700 border-blue-200",
   Contacté: "bg-slate-50 text-slate-700 border-slate-200",
@@ -215,8 +217,6 @@ export function LeadDetailCard({
   const devisInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingDevis, setIsUploadingDevis] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const VILLE_OPTIONS = ["Rabat", "Casablanca", "Kénitra"];
 
   const [isCustomCanal, setIsCustomCanal] = useState(
     !!lead.canal && !CANAL_OPTIONS.includes(lead.canal as any) && lead.canal !== "Autre"
