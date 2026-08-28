@@ -49,6 +49,23 @@ export type {
   PortfolioSector,
 } from "./portfolio";
 
+export type {
+  DevisRecord,
+  DevisInsert,
+  DevisUpdate,
+  DevisData,
+  DevisStatut,
+  DevisOptionId,
+} from "./devis";
+
+export {
+  DEVIS_STATUTS,
+  DEVIS_OPTIONS,
+  TYPE_BIEN_OPTIONS,
+  SUPERFICIE_OPTIONS,
+  HEBERGEMENT_DUREES,
+} from "./devis";
+
 export { PORTFOLIO_SECTORS } from "./portfolio";
 export { TOUR_SECTORS } from "./tour";
 

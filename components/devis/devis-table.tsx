@@ -1,0 +1,247 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { FileText, Plus, Search, Trash2, Eye, Loader2 } from "lucide-react";
+import type { DevisRecord } from "@/types";
+import { DEVIS_STATUTS } from "@/types";
+import { computeStats } from "@/lib/devis";
+import { fmt } from "@/lib/devis-pricing";
+import { DevisForm } from "./devis-form";
+
+function formatDate(value: string | null): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const statutStyle: Record<string, string> = {
+  "Accepté": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "En attente": "bg-amber-50 text-amber-800 border-amber-200",
+  "Refusé": "bg-red-50 text-red-700 border-red-200",
+};
+
+export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
+  const [devis, setDevis] = useState<DevisRecord[]>(initialDevis);
+  const [query, setQuery] = useState("");
+  const [statut, setStatut] = useState("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function notify(m: string) {
+    setToast(m);
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  const stats = useMemo(() => computeStats(devis), [devis]);
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return devis.filter((d) => {
+      if (statut !== "all" && d.statut !== statut) return false;
+      if (!q) return true;
+      return (
+        d.devis_number.toLowerCase().includes(q) ||
+        d.client_nom.toLowerCase().includes(q) ||
+        (d.client_ville ?? "").toLowerCase().includes(q) ||
+        (d.client_email ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [devis, query, statut]);
+
+  async function changeStatut(d: DevisRecord, next: string) {
+    setBusyId(d.id);
+    try {
+      const res = await fetch(`/api/devis/${d.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statut: next }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setDevis((list) => list.map((x) => (x.id === d.id ? json.data : x)));
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Mise à jour impossible");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function remove(d: DevisRecord) {
+    if (!confirm(`Supprimer définitivement le devis ${d.devis_number} ?`)) return;
+    setBusyId(d.id);
+    try {
+      const res = await fetch(`/api/devis/${d.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+      setDevis((list) => list.filter((x) => x.id !== d.id));
+      notify(`${d.devis_number} supprimé`);
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Suppression impossible");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const select =
+    "px-2.5 py-1 text-xs bg-surface-subtle border border-border rounded-lg text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent";
+
+  return (
+    <div className="space-y-3 relative flex flex-col flex-1 min-h-0">
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 bg-surface border border-accent/40 text-text px-4 py-2.5 rounded-xl shadow-2xl">
+          <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+          <span className="text-xs font-medium">{toast}</span>
+        </div>
+      )}
+
+      {/* Statistiques — celles que calculait l'onglet du Sheet, qui disparaît avec lui. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Devis", value: String(stats.total) },
+          { label: "Chiffre d'affaires", value: `${fmt(stats.chiffreAffaires)} MAD` },
+          { label: "Panier moyen", value: `${fmt(Math.round(stats.panierMoyen))} MAD` },
+          { label: "Acceptés", value: `${stats.acceptes} / ${stats.total}` },
+        ].map((s) => (
+          <div key={s.label} className="bg-surface border border-border rounded-xl p-3.5">
+            <div className="text-[11px] text-text-muted">{s.label}</div>
+            <div className="text-sm font-semibold text-text mt-0.5 tabular-nums">{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-3.5 rounded-xl border border-border">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-accent/10 border border-accent/20 text-accent flex-shrink-0">
+            <FileText className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-text">Devis enregistrés</h2>
+            <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
+              <span className="text-amber-600 font-medium">{stats.enAttente} en attente</span>
+              <span>·</span>
+              <span className="text-red-500">{stats.refuses} refusés</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setFormOpen(true)}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-all shadow-sm active:scale-[0.98]"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Nouveau devis
+        </button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-surface p-2.5 rounded-xl border border-border">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-subtle" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher (numéro, client, ville, email)…"
+            className="w-full pl-8 pr-4 py-1 text-xs bg-surface-subtle border border-border rounded-lg text-text placeholder:text-text-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+          />
+        </div>
+        <select className={select} value={statut} onChange={(e) => setStatut(e.target.value)}>
+          <option value="all">Tous les statuts</option>
+          {DEVIS_STATUTS.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-auto bg-surface rounded-xl border border-border">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-surface-subtle border-b border-border">
+            <tr className="text-left text-text-muted">
+              <th className="px-3 py-2 font-medium whitespace-nowrap">N° devis</th>
+              <th className="px-3 py-2 font-medium">Client</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Bien</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap text-right">Total HT</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Date</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Statut</th>
+              <th className="px-3 py-2 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-3 py-8 text-center text-text-subtle">
+                  Aucun devis ne correspond.
+                </td>
+              </tr>
+            )}
+
+            {visible.map((d) => (
+              <tr key={d.id} className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors">
+                <td className="px-3 py-2 whitespace-nowrap font-mono text-[11px] text-text">{d.devis_number}</td>
+                <td className="px-3 py-2 max-w-[220px]">
+                  <div className="font-medium text-text truncate">{d.client_nom}</div>
+                  <div className="text-text-subtle truncate text-[11px]">
+                    {[d.client_ville, d.client_tel].filter(Boolean).join(" · ") || "—"}
+                  </div>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-text-muted">
+                  {[d.type_bien, d.superficie].filter(Boolean).join(" · ") || "—"}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-right font-semibold text-text tabular-nums">
+                  {fmt(Number(d.total_ttc || 0))} MAD
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-text-muted">{formatDate(d.created_at)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <select
+                    value={d.statut}
+                    disabled={busyId === d.id}
+                    onChange={(e) => changeStatut(d, e.target.value)}
+                    className={`px-2 py-0.5 text-[11px] font-medium rounded-md border cursor-pointer focus:outline-none ${statutStyle[d.statut] ?? "bg-slate-100 text-slate-700 border-slate-300"}`}
+                  >
+                    {DEVIS_STATUTS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center justify-end gap-1">
+                    {d.pdf_url && (
+                      <a
+                        href={d.pdf_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-surface-muted transition-colors"
+                        title="Ouvrir le PDF archivé"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => remove(d)}
+                      disabled={busyId === d.id}
+                      className="p-1.5 rounded text-text-muted hover:text-red-600 hover:bg-surface-muted transition-colors disabled:opacity-50"
+                      title="Supprimer"
+                    >
+                      {busyId === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {formOpen && (
+        <DevisForm
+          onClose={() => setFormOpen(false)}
+          onSaved={(d) => {
+            setDevis((list) => [d, ...list]);
+            notify(`${d.devis_number} enregistré`);
+          }}
+        />
+      )}
+    </div>
+  );
+}

@@ -8,6 +8,7 @@ import {
   Users,
   FolderOpen,
   FileText,
+  ReceiptText,
   Globe,
   LogOut,
   Menu,
@@ -59,6 +60,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Tours",
     href: "/dashboard/tours",
     icon: Globe,
+  },
+  {
+    label: "Devis",
+    href: "/dashboard/devis",
+    icon: ReceiptText,
   },
 ];
 
@@ -178,6 +184,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/dashboard/portfolio")) return "Portfolio";
   if (pathname.startsWith("/dashboard/blog")) return "Blog";
   if (pathname.startsWith("/dashboard/tours")) return "Tours";
+  if (pathname.startsWith("/dashboard/devis")) return "Devis";
   return "Dashboard";
 }
 

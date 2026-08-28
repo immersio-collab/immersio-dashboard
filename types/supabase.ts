@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      devis: {
+        Row: {
+          id: string
+          devis_number: string
+          client_nom: string
+          client_tel: string | null
+          client_email: string | null
+          client_ville: string | null
+          type_bien: string | null
+          type_bien_autre: string | null
+          superficie: string | null
+          tour3d_price: number
+          options_selected: string | null
+          options_total: number
+          hebergement_duree: string | null
+          hebergement_price: number
+          subtotal: number
+          remise_pct: number
+          remise_amt: number
+          total_ttc: number
+          notes: string | null
+          validite_jours: number | null
+          auto_pricing_used: boolean
+          statut: string
+          lead_id: string | null
+          pdf_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          devis_number?: string
+          client_nom: string
+          client_tel?: string | null
+          client_email?: string | null
+          client_ville?: string | null
+          type_bien?: string | null
+          type_bien_autre?: string | null
+          superficie?: string | null
+          tour3d_price?: number
+          options_selected?: string | null
+          options_total?: number
+          hebergement_duree?: string | null
+          hebergement_price?: number
+          subtotal?: number
+          remise_pct?: number
+          remise_amt?: number
+          total_ttc?: number
+          notes?: string | null
+          validite_jours?: number | null
+          auto_pricing_used?: boolean
+          statut?: string
+          lead_id?: string | null
+          pdf_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          devis_number?: string
+          client_nom?: string
+          client_tel?: string | null
+          client_email?: string | null
+          client_ville?: string | null
+          type_bien?: string | null
+          type_bien_autre?: string | null
+          superficie?: string | null
+          tour3d_price?: number
+          options_selected?: string | null
+          options_total?: number
+          hebergement_duree?: string | null
+          hebergement_price?: number
+          subtotal?: number
+          remise_pct?: number
+          remise_amt?: number
+          total_ttc?: number
+          notes?: string | null
+          validite_jours?: number | null
+          auto_pricing_used?: boolean
+          statut?: string
+          lead_id?: string | null
+          pdf_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           id: string
