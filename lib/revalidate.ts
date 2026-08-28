@@ -6,10 +6,10 @@
  * expire. The site exposes POST /api/revalidate, guarded by a shared
  * secret, which accepts cache tags to invalidate.
  *
- * Follows the same "optional infrastructure" contract as lib/config.tours.ts:
- * reads process.env directly, returns null when unconfigured, never throws.
- * A missing configuration degrades to the site's time-based ISR window —
- * tours still propagate, just not instantly.
+ * Treated as optional infrastructure: reads process.env directly, returns
+ * null when unconfigured, never throws. A missing configuration degrades to
+ * the site's time-based ISR window — tours still propagate, just not
+ * instantly — so the dashboard stays usable without it.
  */
 
 const ENDPOINT_KEY = "SITE_REVALIDATE_URL" as const;
