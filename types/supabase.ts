@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      blog_posts: {
+        Row: {
+          id: string
+          slug: string
+          language: string
+          linked_topic_id: string | null
+          name: string
+          excerpt: string | null
+          content_html: string | null
+          category: string | null
+          category_label: string | null
+          cover_image: string | null
+          image_alt: string | null
+          author_name: string | null
+          read_time: string | null
+          meta_title: string | null
+          meta_description: string | null
+          status: string
+          published_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          language: string
+          linked_topic_id?: string | null
+          name: string
+          excerpt?: string | null
+          content_html?: string | null
+          category?: string | null
+          category_label?: string | null
+          cover_image?: string | null
+          image_alt?: string | null
+          author_name?: string | null
+          read_time?: string | null
+          meta_title?: string | null
+          meta_description?: string | null
+          status?: string
+          published_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          language?: string
+          linked_topic_id?: string | null
+          name?: string
+          excerpt?: string | null
+          content_html?: string | null
+          category?: string | null
+          category_label?: string | null
+          cover_image?: string | null
+          image_alt?: string | null
+          author_name?: string | null
+          read_time?: string | null
+          meta_title?: string | null
+          meta_description?: string | null
+          status?: string
+          published_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           appelTelephonique: string | null

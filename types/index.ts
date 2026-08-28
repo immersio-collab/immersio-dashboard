@@ -29,5 +29,14 @@ export type {
   TourUpdate,
   TourSectorValue,
 } from "./tour";
+
+export type {
+  BlogPost,
+  BlogPostRecord,
+  BlogPostInsert,
+  BlogPostUpdate,
+  BlogSlugEntry,
+  BlogLanguage,
+} from "./blog";
 export { TOUR_SECTORS } from "./tour";
 

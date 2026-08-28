@@ -56,8 +56,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Blog",
     href: "/dashboard/blog",
     icon: FileText,
-    disabled: true,
-    soon: true,
   },
   {
     label: "Tours",

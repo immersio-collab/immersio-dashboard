@@ -47,9 +47,13 @@ function getRevalidateConfig(): RevalidateConfig | null {
  * Awaited by callers on purpose — Vercel may freeze the function once the
  * response is sent, so a detached promise would often never complete.
  */
-export async function revalidateTours(
-  slugs: ReadonlyArray<string | null | undefined>
-): Promise<void> {
+/**
+ * Posts a set of cache tags to the site's revalidation endpoint.
+ *
+ * Shared by every content type: the site does not care which table a tag came
+ * from, only which cache entries to drop.
+ */
+async function revalidateTags(rawTags: ReadonlyArray<string>): Promise<void> {
   const config = getRevalidateConfig();
   if (!config) {
     console.warn(
@@ -58,14 +62,9 @@ export async function revalidateTours(
     return;
   }
 
-  // A slug rename touches two pages: the URL that just disappeared and the
-  // one that just appeared. Callers pass both; dedupe and drop the empties.
   // Deduped with indexOf rather than a Set spread: tsconfig targets ES5 here
   // and iterating a Set would need downlevelIteration.
-  const tags = slugs
-    .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
-    .map(tourTag)
-    .filter((tag, i, all) => all.indexOf(tag) === i);
+  const tags = rawTags.filter((tag, i, all) => tag && all.indexOf(tag) === i);
   if (tags.length === 0) return;
 
   try {
@@ -93,4 +92,46 @@ export async function revalidateTours(
   } catch (err) {
     console.error("[revalidate] Request failed:", err);
   }
+}
+
+/**
+ * Asks immersio.ma to invalidate the cached pages for the given tour slugs.
+ *
+ * A slug rename touches two pages: the URL that just disappeared and the one
+ * that just appeared. Callers pass both.
+ */
+export async function revalidateTours(
+  slugs: ReadonlyArray<string | null | undefined>
+): Promise<void> {
+  await revalidateTags(
+    slugs
+      .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+      .map(tourTag)
+  );
+}
+
+/**
+ * Cache tags the site attaches to its blog fetches.
+ * Must stay in sync with src/lib/blog-api.ts on immersio.ma.
+ */
+export function blogTags(slug?: string | null): string[] {
+  // "blog" backs the index and any listing; the per-slug tag backs the article
+  // page. An edit touches both — the card in the list carries the title too.
+  const tags = ["blog"];
+  const clean = slug?.trim();
+  if (clean) tags.push(`blog-${clean}`);
+  return tags;
+}
+
+/**
+ * Asks immersio.ma to drop its cached blog pages for the given slugs.
+ *
+ * Same contract as revalidateTours: never throws, awaited by callers so the
+ * request is not frozen mid-flight by the platform.
+ */
+export async function revalidateBlog(
+  slugs: ReadonlyArray<string | null | undefined>
+): Promise<void> {
+  // revalidateTags dedupes, so no Set is needed here (ES5 target).
+  await revalidateTags(slugs.flatMap((s) => blogTags(s)));
 }

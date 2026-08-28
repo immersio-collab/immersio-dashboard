@@ -1,0 +1,76 @@
+"use client";
+
+import { AlertTriangle, X } from "lucide-react";
+import type { BlogPostRecord } from "@/types";
+
+export function BlogDeleteDialog({
+  post,
+  isDeleting,
+  onConfirm,
+  onCancel,
+}: {
+  post: BlogPostRecord | null;
+  isDeleting: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!post) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="w-full max-w-md bg-surface border border-border rounded-xl shadow-2xl">
+        <div className="flex items-start gap-3 p-5 border-b border-border">
+          <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-600 flex-shrink-0">
+            <AlertTriangle className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold text-text">Supprimer cet article ?</h2>
+            <p className="text-xs text-text-muted mt-1 break-words">{post.name}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="p-1 rounded text-text-muted hover:text-text hover:bg-surface-muted"
+            aria-label="Fermer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          {/* The URL is indexed: deleting turns a ranked page into a 404 and
+              Google eventually drops it, along with whatever links point to it. */}
+          <p className="text-xs text-text-muted leading-relaxed">
+            L&apos;URL{" "}
+            <span className="text-accent break-all">/blog/{post.slug}</span>{" "}
+            est référencée par Google. La supprimer la transforme en 404 et fait
+            perdre son positionnement.
+          </p>
+          <p className="text-xs text-text-muted leading-relaxed">
+            Pour retirer l&apos;article du site sans casser son référencement,
+            passe plutôt son statut en <strong className="text-text">Brouillon</strong>.
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-2 p-4 border-t border-border">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="px-3.5 py-1.5 text-xs font-medium rounded-lg border border-border text-text-muted hover:text-text hover:bg-surface-muted transition-colors disabled:opacity-50"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+          >
+            {isDeleting ? "Suppression…" : "Supprimer définitivement"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
