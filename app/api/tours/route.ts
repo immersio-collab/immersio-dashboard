@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSessionCookie } from "@/lib/session";
 import { getTours, createTour, ToursError } from "@/lib/tours";
+import { revalidateTours } from "@/lib/revalidate";
 import type { TourInsert } from "@/types";
 
 /**
@@ -51,6 +52,11 @@ export async function POST(req: NextRequest) {
     }
 
     const created = await createTour(tourData);
+
+    // Publish the new tour on immersio.ma right away. Awaited rather than
+    // detached: Vercel may freeze the function once the response is sent.
+    await revalidateTours([created.slug]);
+
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (err) {
     if (err instanceof ToursError) {

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSessionCookie } from "@/lib/session";
-import { updateTour, deleteTour, ToursError } from "@/lib/tours";
+import { getTourById, updateTour, deleteTour, ToursError } from "@/lib/tours";
+import { revalidateTours } from "@/lib/revalidate";
 import type { TourUpdate } from "@/types";
 
 /**
@@ -26,7 +27,18 @@ export async function PATCH(
       );
     }
 
+    // Read the current row before writing: a slug rename invalidates two
+    // pages on immersio.ma — the URL that just disappeared and the one that
+    // just appeared — and the old value is unrecoverable after the UPDATE.
+    const existing = await getTourById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Tour introuvable." }, { status: 404 });
+    }
+
     const updated = await updateTour(id, body as TourUpdate);
+
+    await revalidateTours([existing.slug, updated.slug]);
+
     return NextResponse.json({ data: updated }, { status: 200 });
   } catch (err) {
     if (err instanceof ToursError) {
@@ -52,7 +64,17 @@ export async function DELETE(
   const { id } = params;
 
   try {
+    // Capture the slug while the row still exists, so the now-dead page can
+    // be flushed from the site's cache instead of lingering until its ISR
+    // window expires.
+    const existing = await getTourById(id);
+
     await deleteTour(id);
+
+    if (existing) {
+      await revalidateTours([existing.slug]);
+    }
+
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
     if (err instanceof ToursError) {

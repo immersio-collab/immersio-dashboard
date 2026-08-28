@@ -63,6 +63,51 @@ export async function getTourById(id: string): Promise<Tour | null> {
 }
 
 /**
+ * Fetch every published tour — the public site's list read path.
+ *
+ * Filters on `active` in the query rather than in JS so an unpublished
+ * tour never reaches the caller in the first place.
+ */
+export async function getActiveTours(): Promise<Tour[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("tours")
+    .select("*")
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new ToursError(`Supabase error: ${error.message}`);
+  }
+
+  return (data || []) as Tour[];
+}
+
+/**
+ * Fetch a single published tour by slug — the public site's page read path.
+ *
+ * `maybeSingle` (not `single`) because a missing slug is an ordinary 404
+ * here, not an error worth throwing on. The `active` filter is part of the
+ * query for the same reason as above: the public endpoint must not be able
+ * to leak an unpublished tour.
+ */
+export async function getTourBySlug(slug: string): Promise<Tour | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("tours")
+    .select("*")
+    .eq("slug", slug.trim().toLowerCase())
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error) {
+    throw new ToursError(`Supabase error: ${error.message}`);
+  }
+
+  return (data as Tour) ?? null;
+}
+
+/**
  * Create a new virtual tour.
  */
 export async function createTour(tourData: TourInsert): Promise<Tour> {
