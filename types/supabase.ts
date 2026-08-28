@@ -26,6 +26,7 @@ export type Database = {
           demoEnvoye: string | null
           devisEnvoye: string | null
           devisUrl: string | null
+          email: string | null
           doublon: string | null
           leadId: string
           nom: string | null
@@ -57,6 +58,7 @@ export type Database = {
           demoEnvoye?: string | null
           devisEnvoye?: string | null
           devisUrl?: string | null
+          email?: string | null
           doublon?: string | null
           leadId: string
           nom?: string | null
@@ -88,6 +90,7 @@ export type Database = {
           demoEnvoye?: string | null
           devisEnvoye?: string | null
           devisUrl?: string | null
+          email?: string | null
           doublon?: string | null
           leadId?: string
           nom?: string | null
