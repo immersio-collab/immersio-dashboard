@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Link2,
   Link2Off,
-  AlertTriangle,
 } from "lucide-react";
 import type { PortfolioProjectRecord } from "@/types";
 import { PORTFOLIO_SECTORS } from "@/types";
@@ -60,22 +59,6 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
       }
     }
     return set;
-  }, [projects]);
-
-  /**
-   * Slugs used by both languages — legitimate, but only safe now that the
-   * lookup keys on (slug, language). Surfaced so it stays visible.
-   *
-   * Built with a plain record rather than a Map: tsconfig targets ES5 here and
-   * iterating a Map would need downlevelIteration.
-   */
-  const sharedSlugs = useMemo(() => {
-    const langsBySlug: Record<string, string[]> = {};
-    for (const p of projects) {
-      const seen = (langsBySlug[p.slug] ??= []);
-      if (!seen.includes(p.language)) seen.push(p.language);
-    }
-    return Object.keys(langsBySlug).filter((slug) => langsBySlug[slug].length > 1);
   }, [projects]);
 
   const visible = useMemo(() => {
@@ -167,17 +150,6 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
           Nouveau projet
         </button>
       </div>
-
-      {sharedSlugs.length > 0 && (
-        <div className="flex items-start gap-2 px-3 py-2 text-[11px] rounded-lg bg-blue-50 border border-blue-200 text-blue-800">
-          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-          <span>
-            {sharedSlugs.length} slug(s) utilisés dans les deux langues :{" "}
-            <span className="font-mono">{sharedSlugs.join(", ")}</span>. C&apos;est valide — un
-            projet est identifié par son couple slug + langue.
-          </span>
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-surface p-2.5 rounded-xl border border-border">
         <div className="relative flex-1 min-w-[200px]">
