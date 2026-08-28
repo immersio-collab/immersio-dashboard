@@ -38,5 +38,17 @@ export type {
   BlogSlugEntry,
   BlogLanguage,
 } from "./blog";
+
+export type {
+  PortfolioProject,
+  PortfolioProjectRecord,
+  PortfolioProjectInsert,
+  PortfolioProjectUpdate,
+  PortfolioSlugEntry,
+  PortfolioLanguage,
+  PortfolioSector,
+} from "./portfolio";
+
+export { PORTFOLIO_SECTORS } from "./portfolio";
 export { TOUR_SECTORS } from "./tour";
 

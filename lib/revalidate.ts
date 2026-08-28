@@ -135,3 +135,26 @@ export async function revalidateBlog(
   // revalidateTags dedupes, so no Set is needed here (ES5 target).
   await revalidateTags(slugs.flatMap((s) => blogTags(s)));
 }
+
+/**
+ * Cache tags the site attaches to its portfolio fetches.
+ * Must stay in sync with src/data/portfolio.ts on immersio.ma.
+ */
+export function portfolioTags(slug?: string | null): string[] {
+  const tags = ["portfolio"];
+  const clean = slug?.trim();
+  if (clean) tags.push(`portfolio-${clean}`);
+  return tags;
+}
+
+/**
+ * Asks immersio.ma to drop its cached portfolio pages for the given slugs.
+ *
+ * A slug is passed once even when it exists in both languages: the site tags
+ * its fetch by slug alone, so one tag covers the French and English pages.
+ */
+export async function revalidatePortfolio(
+  slugs: ReadonlyArray<string | null | undefined>
+): Promise<void> {
+  await revalidateTags(slugs.flatMap((s) => portfolioTags(s)));
+}

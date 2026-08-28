@@ -49,8 +49,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Portfolio",
     href: "/dashboard/portfolio",
     icon: FolderOpen,
-    disabled: true,
-    soon: true,
   },
   {
     label: "Blog",

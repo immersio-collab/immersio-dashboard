@@ -179,6 +179,72 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_projects: {
+        Row: {
+          id: string
+          slug: string
+          language: string
+          linked_topic_id: string | null
+          name: string
+          description_html: string | null
+          city: string | null
+          sector: string | null
+          surface: string | null
+          delivery_time: string | null
+          cover_image: string | null
+          embed_url: string | null
+          deliverables: Json
+          meta_title: string | null
+          meta_description: string | null
+          status: string
+          published_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          language: string
+          linked_topic_id?: string | null
+          name: string
+          description_html?: string | null
+          city?: string | null
+          sector?: string | null
+          surface?: string | null
+          delivery_time?: string | null
+          cover_image?: string | null
+          embed_url?: string | null
+          deliverables?: Json
+          meta_title?: string | null
+          meta_description?: string | null
+          status?: string
+          published_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          language?: string
+          linked_topic_id?: string | null
+          name?: string
+          description_html?: string | null
+          city?: string | null
+          sector?: string | null
+          surface?: string | null
+          delivery_time?: string | null
+          cover_image?: string | null
+          embed_url?: string | null
+          deliverables?: Json
+          meta_title?: string | null
+          meta_description?: string | null
+          status?: string
+          published_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tours: {
         Row: {
           id: string
