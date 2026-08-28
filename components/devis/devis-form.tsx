@@ -5,6 +5,7 @@ import { Download, Save, X, Loader2 } from "lucide-react";
 import {
   DEVIS_OPTIONS,
   HEBERGEMENT_DUREES,
+  REMISE_AUTO_PCT,
   SUPERFICIE_OPTIONS,
   TYPE_BIEN_OPTIONS,
   type DevisData,
@@ -18,7 +19,9 @@ import {
   fmt,
   optionLabel,
   prolongationRate,
+  suggestedHebergementPrices,
   superficieLabel,
+  tour3dPrice,
   typeBienLabel,
 } from "@/lib/devis-pricing";
 
@@ -90,6 +93,43 @@ export function DevisForm({
     setData((d) => ({ ...d, [k]: v }));
 
   const totals = useMemo(() => computeTotals(data), [data]);
+
+  /**
+   * Suggested hosting prices and default discount.
+   *
+   * Recomputed whenever the tour price moves, but only for fields the user has
+   * not touched: once a price is typed by hand it stops being overwritten,
+   * which is how the original behaved. Returning the same state object when
+   * nothing changed keeps this out of a render loop.
+   */
+  const overrides = useRef<Set<string>>(new Set());
+  const [autoPricing, setAutoPricing] = useState(false);
+
+  useEffect(() => {
+    const tour = tour3dPrice(data);
+    if (tour <= 0) {
+      setAutoPricing(false);
+      return;
+    }
+    setAutoPricing(true);
+    const suggested = suggestedHebergementPrices(tour);
+
+    setData((d) => {
+      const prices = { ...d.hebergementPrices };
+      let changed = false;
+      for (const [k, v] of Object.entries(suggested)) {
+        if (!overrides.current.has(`h${k}`) && prices[k] !== v) {
+          prices[k] = v;
+          changed = true;
+        }
+      }
+      const remise = overrides.current.has("remise") ? d.remisePct : REMISE_AUTO_PCT;
+      if (!changed && remise === d.remisePct) return d;
+      return { ...d, hebergementPrices: prices, remisePct: remise };
+    });
+    // Deliberately keyed on the inputs of the tour price only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.basePrice, data.typeBien, data.superficie]);
 
   /**
    * Live preview.
@@ -288,7 +328,7 @@ export function DevisForm({
               </div>
             </Section>
 
-            <Section title="Hébergement de la visite">
+            <Section title={autoPricing ? "Hébergement de la visite — prix suggérés" : "Hébergement de la visite"}>
               <div className="grid grid-cols-5 gap-2">
                 {HEBERGEMENT_DUREES.map((d) => (
                   <Chip key={d.value} active={data.hebergementDuree === d.value} onClick={() => set("hebergementDuree", data.hebergementDuree === d.value ? "" : d.value)}>
@@ -304,12 +344,13 @@ export function DevisForm({
                     className={`${input} text-center tabular-nums`}
                     placeholder="MAD"
                     value={data.hebergementPrices[d.value] || ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      overrides.current.add(`h${d.value}`);
                       set("hebergementPrices", {
                         ...data.hebergementPrices,
                         [d.value]: parseFloat(e.target.value) || 0,
-                      })
-                    }
+                      });
+                    }}
                   />
                 ))}
               </div>
@@ -329,7 +370,10 @@ export function DevisForm({
                     max={100}
                     className={input}
                     value={data.remisePct || ""}
-                    onChange={(e) => set("remisePct", Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                    onChange={(e) => {
+                      overrides.current.add("remise");
+                      set("remisePct", Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)));
+                    }}
                   />
                 </Field>
                 <Field label="Validité (jours)">

@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileText, Plus, Search, Trash2, Eye, Loader2 } from "lucide-react";
+import { FileText, Plus, Search, Trash2, Eye, Download, Loader2 } from "lucide-react";
 import type { DevisRecord } from "@/types";
 import { DEVIS_STATUTS } from "@/types";
 import { computeStats } from "@/lib/devis";
 import { fmt } from "@/lib/devis-pricing";
+import { buildDevisPdf, devisFileName } from "@/lib/devis-pdf";
+import { devisDataFromRecord } from "@/lib/devis-record";
 import { DevisForm } from "./devis-form";
 
 function formatDate(value: string | null): string {
@@ -49,6 +51,32 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
       );
     });
   }, [devis, query, statut]);
+
+  /**
+   * Opens the quotation as a PDF.
+   *
+   * The archived copy wins when there is one — it is the document the client
+   * received. Quotations imported from the Sheet have none, so they are
+   * rebuilt from their stored figures.
+   */
+  function view(d: DevisRecord) {
+    if (d.pdf_url) {
+      window.open(d.pdf_url, "_blank", "noopener");
+      return;
+    }
+    const url = String(buildDevisPdf(devisDataFromRecord(d)).output("bloburl"));
+    window.open(url, "_blank", "noopener");
+  }
+
+  /**
+   * Rebuilt rather than fetched, even when archived: a cross-origin URL
+   * ignores the download attribute, so the browser would open the file
+   * instead of saving it.
+   */
+  function download(d: DevisRecord) {
+    const data = devisDataFromRecord(d);
+    buildDevisPdf(data).save(devisFileName(data));
+  }
 
   async function changeStatut(d: DevisRecord, next: string) {
     setBusyId(d.id);
@@ -205,17 +233,22 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center justify-end gap-1">
-                    {d.pdf_url && (
-                      <a
-                        href={d.pdf_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-surface-muted transition-colors"
-                        title="Ouvrir le PDF archivé"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </a>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => view(d)}
+                      className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-surface-muted transition-colors"
+                      title={d.pdf_url ? "Ouvrir le PDF archivé" : "Ouvrir le PDF (reconstruit)"}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => download(d)}
+                      className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-surface-muted transition-colors"
+                      title="Télécharger le PDF"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => remove(d)}

@@ -77,14 +77,25 @@ export const DEVIS_OPTIONS = [
 
 export type DevisOptionId = (typeof DEVIS_OPTIONS)[number]["id"];
 
-/** Hosting durations, in months, and the monthly renewal rate after expiry. */
+/**
+ * Hosting durations.
+ *
+ * `prolongation` is the preferential monthly rate offered once the period
+ * expires, printed as a note in the PDF. `autoRatio` and `autoFloor` drive
+ * the suggested price: max(floor, round(tour3dPrice * ratio)). Both sets of
+ * figures are the originals from immersio-devis — they are commercial terms,
+ * not defaults to be reinvented.
+ */
 export const HEBERGEMENT_DUREES = [
-  { value: "1", label: "1 mois", prolongation: 0 },
-  { value: "3", label: "3 mois", prolongation: 180 },
-  { value: "6", label: "6 mois", prolongation: 150 },
-  { value: "12", label: "12 mois", prolongation: 120 },
-  { value: "24", label: "24 mois", prolongation: 90 },
+  { value: "1", label: "1 mois", prolongation: 150, autoRatio: 0.12, autoFloor: 150 },
+  { value: "3", label: "3 mois", prolongation: 100, autoRatio: 0.2, autoFloor: 200 },
+  { value: "6", label: "6 mois", prolongation: 50, autoRatio: 0.3, autoFloor: 250 },
+  { value: "12", label: "12 mois", prolongation: 45, autoRatio: 0.45, autoFloor: 350 },
+  { value: "24", label: "24 mois", prolongation: 35, autoRatio: 0.65, autoFloor: 500 },
 ] as const;
+
+/** Discount applied by default, as in the original form. */
+export const REMISE_AUTO_PCT = 10;
 
 /** Row as stored. */
 export interface DevisRecord {
@@ -129,9 +140,28 @@ export interface DevisData {
   typeBien: string;
   typeBienAutre: string;
   superficie: string;
+  /** Exact surface wording of a saved quotation, printed as-is when set. */
+  superficieOverride?: string;
   /** Base price before the type and surface multipliers. */
   basePrice: number;
+  /**
+   * Exact tour price of a saved quotation.
+   *
+   * A stored record keeps the computed price but not the base price and
+   * coefficients behind it, and those coefficients may since have changed.
+   * When set, it is used verbatim instead of being recomputed — a reprint
+   * must show the figures the client was quoted.
+   */
+  tour3dOverride?: number;
   options: DevisOptionId[];
+  /**
+   * Option labels that no longer match a known id.
+   *
+   * Quotations imported from the Sheet list options under wording that has
+   * since changed ("Vidéo HD (MP4)", "Tags interactifs"). Dropping them would
+   * silently reprint a lighter quotation than the client received.
+   */
+  extraOptions?: string[];
   hebergementDuree: string;
   /** Price per duration, keyed by month count ("1", "3", "6", "12", "24"). */
   hebergementPrices: Record<string, number>;

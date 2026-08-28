@@ -45,7 +45,23 @@ export function optionLabel(id: DevisOptionId): string {
 
 /** Base price × type coefficient × surface coefficient, rounded. */
 export function tour3dPrice(data: DevisData): number {
+  // A reprint carries the price the client was quoted, not today's recompute.
+  if (typeof data.tour3dOverride === "number") return data.tour3dOverride;
   return Math.round(data.basePrice * typeCoef(data.typeBien) * superficieCoef(data.superficie));
+}
+
+/**
+ * Suggested hosting prices for a given tour price.
+ *
+ * max(floor, round(tour × ratio)) per duration, exactly as the original form
+ * computed them on every keystroke.
+ */
+export function suggestedHebergementPrices(tour3d: number): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const d of HEBERGEMENT_DUREES) {
+    out[d.value] = Math.max(d.autoFloor, Math.round(tour3d * d.autoRatio));
+  }
+  return out;
 }
 
 export function hebergementPrice(data: DevisData): number {

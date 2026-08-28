@@ -132,7 +132,8 @@ export function buildDevisPdf(data: DevisData): jsPDF {
   text("Type de bien", ML + cardW + 11, y + 9.5, { size: 6, color: MUTED_C });
   text(typeBienLabel(data), ML + cardW + 11, y + 13.5, { size: 8, bold: true });
   text("Superficie du bien", ML + cardW + 11, y + 18.5, { size: 6, color: MUTED_C });
-  text(data.superficie ? superficieLabel(data.superficie) : "—", ML + cardW + 11, y + 22.5, {
+  const superfText = data.superficieOverride ?? (data.superficie ? superficieLabel(data.superficie) : "—");
+  text(superfText, ML + cardW + 11, y + 22.5, {
     size: 8,
     bold: true,
   });
@@ -143,7 +144,8 @@ export function buildDevisPdf(data: DevisData): jsPDF {
   text("PRESTATIONS & OPTIONS DÉTAILLÉES", ML, y, { size: 7.2, bold: true, color: MUTED_C });
 
   const selected = DEVIS_OPTIONS.filter((o) => data.options.includes(o.id as DevisOptionId));
-  const activeRows = 1 + selected.length; // 1 for the base tour
+  const extras = data.extraOptions ?? [];
+  const activeRows = 1 + selected.length + extras.length; // 1 for the base tour
 
   const tableY = y + 4.5;
   const rowH = 8.5;
@@ -190,6 +192,8 @@ export function buildDevisPdf(data: DevisData): jsPDF {
     totals.tour3d
   );
   selected.forEach((opt) => optRow(opt.label, opt.desc, true));
+  // Reprints of older quotations: label only, no description to invent.
+  extras.forEach((label) => optRow(label, "", true));
 
   y = tableY + tableH + 6;
 

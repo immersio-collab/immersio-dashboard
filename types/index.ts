@@ -64,6 +64,7 @@ export {
   TYPE_BIEN_OPTIONS,
   SUPERFICIE_OPTIONS,
   HEBERGEMENT_DUREES,
+  REMISE_AUTO_PCT,
 } from "./devis";
 
 export { PORTFOLIO_SECTORS } from "./portfolio";
