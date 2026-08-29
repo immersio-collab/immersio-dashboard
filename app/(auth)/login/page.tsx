@@ -1,86 +1,35 @@
-"use client";
-
 import type { Metadata } from "next";
-import { useFormState, useFormStatus } from "react-dom";
+import { redirect } from "next/navigation";
 
-import { login, type LoginState } from "@/lib/auth";
+import { hasSessionCookie } from "@/lib/session";
+import { LoginForm } from "./login-form";
 
-// Metadata cannot live in a Client Component — assigned below via a
-// dedicated server file. The LoginPage component itself is client-only.
+export const metadata: Metadata = {
+  title: "Connexion — Immersio Dashboard",
+};
 
-/**
- * Submit button wired up to `react-dom` `useFormStatus` for disabled/pending
- * state while the login Server Action runs.
- */
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="btn-primary w-full"
-      aria-busy={pending}
-    >
-      {pending ? "Signing in…" : "Sign in"}
-    </button>
-  );
-}
+export const dynamic = "force-dynamic";
 
 /**
- * Login form (Client Component, so react-dom hooks are allowed).
+ * Page de connexion (Server Component).
  *
- * Design: minimal, centred, no decoration. Single password input.
- * Error banner appears above the input on bad password; never reveals
- * *why* the password failed (enum attacks are already impossible, but
- * keeping the message generic avoids leaking hash-config state either).
+ * Server plutôt que Client pour deux raisons : la session se vérifie ici —
+ * arriver sur /login avec une session valide redirige vers le dashboard au
+ * lieu de redemander un mot de passe — et le paramètre `next` posé par le
+ * middleware est transmis au formulaire, qui le renvoie à la Server Action.
+ * Sans cela, tout lien profond retombait sur la vue d'ensemble.
  */
-export default function LoginPage() {
-  // Initial state: no error, not OK (user hasn't submitted yet).
-  const initialState: LoginState = { ok: false };
-  // Server Action binding via react-dom. The action redirects on success
-  // and returns a typed error state on failure.
-  const [state, formAction] = useFormState(login, initialState);
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: { next?: string | string[] };
+}) {
+  if (await hasSessionCookie()) {
+    redirect("/dashboard");
+  }
 
-  return (
-    <div className="card p-6">
-      <div className="mb-6">
-        <h1 className="mb-1">Sign in</h1>
-        <p className="text-sm text-text-muted">
-          Access your Immersio dashboard.
-        </p>
-      </div>
+  const raw = searchParams.next;
+  const next = Array.isArray(raw) ? raw[0] : raw;
 
-      <form action={formAction} className="space-y-4" noValidate>
-        {state.error ? (
-          <div
-            role="alert"
-            className="border border-border rounded px-3 py-2 text-sm text-text bg-surface-muted"
-          >
-            {state.error}
-          </div>
-        ) : null}
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-text mb-1.5"
-          >
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            required
-            autoFocus
-            className="input-base"
-            placeholder="••••••••"
-          />
-        </div>
-
-        <SubmitButton />
-      </form>
-    </div>
-  );
+  return <LoginForm next={next} />;
 }

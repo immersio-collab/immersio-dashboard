@@ -51,7 +51,90 @@ export async function getLeads(): Promise<Lead[]> {
     throw new LeadsError(`Supabase error: ${error.message}`);
   }
 
-  return (data || []) as Lead[];
+  return withLinkedDevis((data || []) as Lead[]);
+}
+
+/**
+ * Complète les leads avec les informations de leur devis le plus récent.
+ *
+ * `devisEnvoye`, `prixProposeMAD` et `devisUrl` existaient en double : saisis
+ * à la main sur le lead d'un côté, calculés par le module Devis de l'autre,
+ * sans rien pour les synchroniser. Un devis de 18 000 MAD pouvait coexister
+ * avec un lead affichant « Devis envoyé : Non » et un prix vide.
+ *
+ * Le devis lié fait désormais foi ; les valeurs stockées ne subsistent que
+ * pour les leads sans devis rattaché — notamment ceux importés du Sheet.
+ *
+ * Ne lève jamais : un lead reste exploitable même si la table devis est
+ * indisponible, ou si la colonne lead_id n'existe pas encore.
+ */
+async function withLinkedDevis(leads: Lead[]): Promise<Lead[]> {
+  if (leads.length === 0) return leads;
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("devis")
+      .select("lead_id, total_ttc, pdf_url, archived, created_at")
+      .not("lead_id", "is", null)
+      .order("created_at", { ascending: false });
+
+    if (error || !data) return leads;
+
+    // Le premier rencontré par lead est le plus récent (requête triée).
+    const latest = new Map<string, (typeof data)[number]>();
+    for (const d of data) {
+      if (d.archived || !d.lead_id) continue;
+      if (!latest.has(d.lead_id)) latest.set(d.lead_id, d);
+    }
+    if (latest.size === 0) return leads;
+
+    return leads.map((lead) => {
+      const devis = latest.get(lead.leadId);
+      if (!devis) return lead;
+      return {
+        ...lead,
+        devisEnvoye: "Oui",
+        prixProposeMAD: Number(devis.total_ttc || 0).toLocaleString("fr-FR"),
+        // Un PDF téléversé à la main sur la fiche reste accessible si le devis
+        // n'a pas encore été archivé côté Storage.
+        devisUrl: devis.pdf_url ?? lead.devisUrl,
+        devisDerive: true,
+      };
+    });
+  } catch {
+    return leads;
+  }
+}
+
+/**
+ * Sous-ensemble des leads nécessaire aux pastilles de l'en-tête.
+ *
+ * La barre latérale est rendue par le layout du dashboard, donc sur chaque
+ * page : consulter le blog ou les devis rapatriait jusqu'ici la table des
+ * leads entière (select *, puis une seconde requête pour les devis liés) pour
+ * n'en tirer que trois compteurs. Seules les colonnes que la logique
+ * d'alertes consulte sont demandées ici, et l'enrichissement est sauté.
+ */
+export async function getLeadsForBadges(): Promise<Lead[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("leads")
+    .select(
+      "leadId, nom, statut, doublon, dateFormulaire, date1erContact, dateDeEchange, " +
+        "appelTelephonique, contacteSurWhatsapp, " +
+        "relance1Auto, relance2Auto, relance3Auto, " +
+        "relance1Fait, relance2Fait, relance3Fait, " +
+        "rappelDate, rappelNote, rappelFait"
+    )
+    .neq("archive", "Oui")
+    .neq("archive", "TRUE");
+
+  if (error) {
+    throw new LeadsError(`Supabase error: ${error.message}`);
+  }
+
+  return (data || []) as unknown as Lead[];
 }
 
 function sanitizeFieldsForDb(fields: Partial<Lead>) {

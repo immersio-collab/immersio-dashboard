@@ -40,6 +40,36 @@ import {
 import { LeadDetailCard } from "@/components/leads/lead-detail-card";
 import { LeadCreateModal } from "@/components/leads/lead-create-modal";
 import { RelanceVariationsModal } from "@/components/leads/relance-variations-modal";
+import { ExportCsvButton, Pagination, usePagination } from "@/components/table";
+import type { CsvColumn } from "@/lib/csv";
+
+/** Colonnes de l'export — le pipeline commercial complet d'un lead. */
+const CSV_COLUMNS: ReadonlyArray<CsvColumn<Lead>> = [
+  { header: "ID", value: (l) => l.leadId },
+  { header: "Nom", value: (l) => l.nom },
+  { header: "Téléphone", value: (l) => l.telephone },
+  { header: "Email", value: (l) => l.email },
+  { header: "Canal", value: (l) => l.canal },
+  { header: "Ville", value: (l) => l.ville },
+  { header: "Type de bien", value: (l) => l.typeDeBien },
+  { header: "Surface", value: (l) => l.surface },
+  { header: "Statut", value: (l) => l.statut },
+  { header: "Doublon", value: (l) => l.doublon },
+  { header: "Date formulaire", value: (l) => l.dateFormulaire },
+  { header: "1er contact", value: (l) => l.date1erContact },
+  { header: "Dernier échange", value: (l) => l.dateDeEchange },
+  { header: "Appel tél.", value: (l) => l.appelTelephonique },
+  { header: "WhatsApp", value: (l) => l.contacteSurWhatsapp },
+  { header: "Devis envoyé", value: (l) => l.devisEnvoye },
+  { header: "Démo envoyée", value: (l) => l.demoEnvoye },
+  { header: "Prix proposé (MAD)", value: (l) => l.prixProposeMAD },
+  { header: "Relance 1", value: (l) => l.relance1Auto },
+  { header: "Relance 2", value: (l) => l.relance2Auto },
+  { header: "Relance 3", value: (l) => l.relance3Auto },
+  { header: "Rendez-vous", value: (l) => l.rappelDate },
+  { header: "Motif rendez-vous", value: (l) => l.rappelNote },
+  { header: "Notes", value: (l) => l.notes },
+];
 import type { RelanceType } from "@/components/leads/relance-variations-modal";
 
 // ---------------------------------------------------------------------------
@@ -441,6 +471,8 @@ export function LeadsTable({
     sortDir,
   ]);
 
+  const pager = usePagination(displayedLeads);
+
   // Count leads with active rappels
   const rappelsCount = useMemo(
     () => leads.filter((l) => hasActiveRappel(l)).length,
@@ -591,6 +623,9 @@ export function LeadsTable({
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent" />
             )}
           </button>
+
+          {/* Exporte la vue filtrée, pas la table entière. */}
+          <ExportCsvButton rows={displayedLeads} columns={CSV_COLUMNS} fileNamePrefix="leads" />
         </div>
 
         {/* Mobile Overlay Background */}
@@ -977,7 +1012,7 @@ export function LeadsTable({
                 </tr>
               </thead>
               <tbody ref={tableBodyRef}>
-                {displayedLeads.length === 0 ? (
+                {pager.slice.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
@@ -989,7 +1024,7 @@ export function LeadsTable({
                     </td>
                   </tr>
                 ) : (
-                  displayedLeads.map((lead) => {
+                  pager.slice.map((lead) => {
                     const alerts = getLeadAlerts(lead);
                     const isSelected =
                       selectedLead?.leadId === lead.leadId;
@@ -1142,6 +1177,15 @@ export function LeadsTable({
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            page={pager.page}
+            pageCount={pager.pageCount}
+            total={pager.total}
+            pageSize={pager.pageSize}
+            onChange={pager.setPage}
+            noun="lead"
+          />
         </div>
 
         {/* ── RIGHT: Detail Card ── */}

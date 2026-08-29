@@ -28,6 +28,28 @@ export interface LoginState {
   error?: string;
 }
 
+/** Destination par défaut après une connexion réussie. */
+const DEFAULT_DESTINATION = "/dashboard";
+
+/**
+ * Valide la destination post-connexion transmise par le middleware.
+ *
+ * Seul un chemin interne est accepté. Un `next` contrôlé par l'attaquant
+ * ("https://evil.tld", "//evil.tld", "/\\evil.tld") transformerait l'écran de
+ * connexion en redirection ouverte : la victime se connaît authentifiée sur
+ * immersio et atterrit sur une page qui ne nous appartient pas. Tout ce qui
+ * n'est pas un chemin absolu simple retombe sur le dashboard.
+ */
+function safeDestination(value: FormDataEntryValue | null): string {
+  if (typeof value !== "string") return DEFAULT_DESTINATION;
+  const path = value.trim();
+  if (!path.startsWith("/")) return DEFAULT_DESTINATION;
+  // "//host" et "/\host" sont interprétés comme des URL absolues par les
+  // navigateurs : les rejeter explicitement.
+  if (path.startsWith("//") || path.startsWith("/\\")) return DEFAULT_DESTINATION;
+  return path;
+}
+
 /**
  * Login Server Action.
  *
@@ -76,9 +98,9 @@ export async function login(
     return { ok: false, error: "Mot de passe incorrect." };
   }
 
-  // Success: issue session cookie and redirect to the dashboard.
+  // Success: issue session cookie and return the user where they were going.
   await setSessionCookie();
-  redirect("/dashboard");
+  redirect(safeDestination(formData.get("next")));
 }
 
 /**

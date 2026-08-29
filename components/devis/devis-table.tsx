@@ -2,14 +2,45 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileText, Plus, Search, Archive, Eye, Download, Loader2 } from "lucide-react";
+import { FileText, Plus, Search, Archive, Eye, Download, Loader2, Pencil } from "lucide-react";
 import type { DevisRecord } from "@/types";
 import { DEVIS_STATUTS } from "@/types";
 import { computeStats } from "@/lib/devis";
 import { fmt } from "@/lib/devis-pricing";
 import { buildDevisPdf, devisFileName } from "@/lib/devis-pdf";
 import { devisDataFromRecord } from "@/lib/devis-record";
+import {
+  ConfirmDialog,
+  ExportCsvButton,
+  Pagination,
+  SortHeader,
+  usePagination,
+  useSort,
+} from "@/components/table";
+import type { CsvColumn } from "@/lib/csv";
 import { DevisForm } from "./devis-form";
+
+type DevisSortKey = "devis_number" | "client_nom" | "total_ttc" | "created_at" | "statut";
+
+/** Colonnes de l'export — l'ordre est celui du tableau. */
+const CSV_COLUMNS: ReadonlyArray<CsvColumn<DevisRecord>> = [
+  { header: "N° devis", value: (d) => d.devis_number },
+  { header: "Client", value: (d) => d.client_nom },
+  { header: "Téléphone", value: (d) => d.client_tel },
+  { header: "Email", value: (d) => d.client_email },
+  { header: "Ville", value: (d) => d.client_ville },
+  { header: "Type de bien", value: (d) => d.type_bien },
+  { header: "Superficie", value: (d) => d.superficie },
+  { header: "Prix Tour 3D", value: (d) => d.tour3d_price },
+  { header: "Options", value: (d) => d.options_selected },
+  { header: "Hébergement", value: (d) => d.hebergement_duree },
+  { header: "Prix hébergement", value: (d) => d.hebergement_price },
+  { header: "Remise %", value: (d) => d.remise_pct },
+  { header: "Total", value: (d) => d.total_ttc },
+  { header: "Statut", value: (d) => d.statut },
+  { header: "Lead lié", value: (d) => d.lead_id },
+  { header: "Créé le", value: (d) => d.created_at },
+];
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -29,6 +60,8 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
   const [query, setQuery] = useState("");
   const [statut, setStatut] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
+  const [toEdit, setToEdit] = useState<DevisRecord | null>(null);
+  const [toArchive, setToArchive] = useState<DevisRecord | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -64,6 +97,19 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
       );
     });
   }, [devis, query, statut]);
+
+  const { sort, toggle, sorted } = useSort<DevisRecord, DevisSortKey>(
+    visible,
+    {
+      devis_number: (d) => d.devis_number,
+      client_nom: (d) => d.client_nom,
+      total_ttc: (d) => Number(d.total_ttc || 0),
+      created_at: (d) => d.created_at,
+      statut: (d) => d.statut,
+    },
+    { key: "created_at", dir: "desc" }
+  );
+  const pager = usePagination(sorted);
 
   /**
    * Opens the quotation as a PDF.
@@ -111,14 +157,13 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
 
   /** Archive (soft-delete) : le devis reste en base, il disparaît de la liste. */
   async function archiver(d: DevisRecord) {
-    if (!confirm(`Archiver le devis ${d.devis_number} ? Il restera conservé dans Supabase.`))
-      return;
     setBusyId(d.id);
     try {
       const res = await fetch(`/api/devis/${d.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
       setDevis((list) => list.filter((x) => x.id !== d.id));
       notify(`${d.devis_number} archivé`);
+      setToArchive(null);
     } catch (e) {
       notify(e instanceof Error ? e.message : "Archivage impossible");
     } finally {
@@ -170,7 +215,10 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
 
         <button
           type="button"
-          onClick={() => setFormOpen(true)}
+          onClick={() => {
+            setToEdit(null);
+            setFormOpen(true);
+          }}
           className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-all shadow-sm active:scale-[0.98]"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -194,23 +242,31 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
+        <ExportCsvButton rows={sorted} columns={CSV_COLUMNS} fileNamePrefix="devis" />
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto bg-surface rounded-xl border border-border">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-surface-subtle border-b border-border">
             <tr className="text-left text-text-muted">
-              <th className="px-3 py-2 font-medium whitespace-nowrap">N° devis</th>
-              <th className="px-3 py-2 font-medium">Client</th>
+              <SortHeader label="N° devis" sortKey="devis_number" sort={sort} onToggle={toggle} />
+              <SortHeader label="Client" sortKey="client_nom" sort={sort} onToggle={toggle} />
               <th className="px-3 py-2 font-medium whitespace-nowrap">Bien</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap text-right">Total HT</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Date</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Statut</th>
+              <SortHeader
+                label="Total HT"
+                sortKey="total_ttc"
+                sort={sort}
+                onToggle={toggle}
+                align="right"
+                className="text-right"
+              />
+              <SortHeader label="Date" sortKey="created_at" sort={sort} onToggle={toggle} />
+              <SortHeader label="Statut" sortKey="statut" sort={sort} onToggle={toggle} />
               <th className="px-3 py-2 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {visible.length === 0 && (
+            {pager.slice.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-text-subtle">
                   Aucun devis ne correspond.
@@ -218,7 +274,7 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
               </tr>
             )}
 
-            {visible.map((d) => (
+            {pager.slice.map((d) => (
               <tr key={d.id} className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors">
                 <td className="px-3 py-2 whitespace-nowrap font-mono text-[11px] text-text">{d.devis_number}</td>
                 <td className="px-3 py-2 max-w-[220px]">
@@ -266,7 +322,18 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => archiver(d)}
+                      onClick={() => {
+                        setToEdit(d);
+                        setFormOpen(true);
+                      }}
+                      className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-surface-muted transition-colors"
+                      title="Modifier le devis"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setToArchive(d)}
                       disabled={busyId === d.id}
                       className="p-1.5 rounded text-text-muted hover:text-red-600 hover:bg-surface-muted transition-colors disabled:opacity-50"
                       title="Archiver (conservé dans Supabase)"
@@ -281,16 +348,60 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
         </table>
       </div>
 
+      <Pagination
+        page={pager.page}
+        pageCount={pager.pageCount}
+        total={pager.total}
+        pageSize={pager.pageSize}
+        onChange={pager.setPage}
+        noun="devis"
+      />
+
+      <ConfirmDialog
+        open={!!toArchive}
+        title="Archiver ce devis ?"
+        message={
+          <>
+            <p>
+              <span className="font-medium text-text">{toArchive?.devis_number}</span> —{" "}
+              {toArchive?.client_nom}
+            </p>
+            <p>
+              Le devis et son PDF restent conservés dans Supabase ; ils disparaissent seulement de
+              cette liste et des devis liés au lead.
+            </p>
+          </>
+        }
+        confirmLabel="Archiver le devis"
+        pendingLabel="Archivage…"
+        isPending={!!toArchive && busyId === toArchive.id}
+        onConfirm={() => toArchive && archiver(toArchive)}
+        onCancel={() => setToArchive(null)}
+      />
+
       {formOpen && (
         <DevisForm
-          initialLeadId={prefilledLeadId}
+          // `key` force un état neuf entre deux devis : sans lui, rouvrir un
+          // autre devis réutiliserait le formulaire déjà monté et ses valeurs.
+          key={toEdit?.id ?? "nouveau"}
+          devis={toEdit}
+          initialLeadId={toEdit ? (toEdit.lead_id ?? null) : prefilledLeadId}
           onClose={() => {
             setFormOpen(false);
+            setToEdit(null);
             setPrefilledLeadId(null);
           }}
           onSaved={(d) => {
-            setDevis((list) => [d, ...list]);
-            notify(`${d.devis_number} enregistré`);
+            setDevis((list) => {
+              const i = list.findIndex((x) => x.id === d.id);
+              if (i === -1) return [d, ...list];
+              const next = [...list];
+              next[i] = d;
+              return next;
+            });
+            notify(toEdit ? `${d.devis_number} mis à jour` : `${d.devis_number} enregistré`);
+            setFormOpen(false);
+            setToEdit(null);
           }}
         />
       )}

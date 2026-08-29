@@ -21,6 +21,26 @@ import type { Tour } from "@/types";
 import { TOUR_SECTORS } from "@/types";
 import { TourModal } from "./tour-modal";
 import { TourDeleteDialog } from "./tour-delete-dialog";
+import {
+  ExportCsvButton,
+  Pagination,
+  usePagination,
+  useSort,
+} from "@/components/table";
+import type { CsvColumn } from "@/lib/csv";
+
+type TourSortKey = "property_name" | "client_name" | "sector" | "slug" | "active" | "created_at";
+
+const CSV_COLUMNS: ReadonlyArray<CsvColumn<Tour>> = [
+  { header: "Bien", value: (t) => t.property_name },
+  { header: "Client", value: (t) => t.client_name },
+  { header: "Slug", value: (t) => t.slug },
+  { header: "Secteur", value: (t) => t.sector },
+  { header: "URL RealSee", value: (t) => t.realsee_url },
+  { header: "Page publique", value: (t) => `https://immersio.ma/visite/${t.slug}` },
+  { header: "En ligne", value: (t) => (t.active ? "Oui" : "Non") },
+  { header: "Créé le", value: (t) => t.created_at },
+];
 
 interface ToursTableProps {
   initialTours: Tour[];
@@ -217,6 +237,20 @@ export function ToursTable({ initialTours }: ToursTableProps) {
     });
   }, [tours, searchQuery, selectedSector, selectedStatus]);
 
+  const { sort, toggle, sorted } = useSort<Tour, TourSortKey>(
+    filteredTours,
+    {
+      property_name: (t) => t.property_name,
+      client_name: (t) => t.client_name,
+      sector: (t) => t.sector,
+      slug: (t) => t.slug,
+      active: (t) => (t.active ? 1 : 0),
+      created_at: (t) => t.created_at,
+    },
+    { key: "created_at", dir: "desc" }
+  );
+  const pager = usePagination(sorted);
+
   // Sector badge helper with high-contrast vibrant colors and indicator dots
   const getSectorBadge = (sectorValue: string | null) => {
     if (!sectorValue) {
@@ -340,6 +374,9 @@ export function ToursTable({ initialTours }: ToursTableProps) {
               <option value="inactive" className="bg-surface text-text">Inactifs uniquement</option>
             </select>
           </div>
+
+          {/* Exporte la vue filtrée, pas la table entière. */}
+          <ExportCsvButton rows={sorted} columns={CSV_COLUMNS} fileNamePrefix="tours" />
         </div>
       </div>
 
@@ -370,7 +407,7 @@ export function ToursTable({ initialTours }: ToursTableProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {filteredTours.length === 0 ? (
+              {pager.slice.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-text-muted">
                     <div className="flex flex-col items-center justify-center space-y-1.5">
@@ -385,7 +422,7 @@ export function ToursTable({ initialTours }: ToursTableProps) {
                   </td>
                 </tr>
               ) : (
-                filteredTours.map((tour) => {
+                pager.slice.map((tour) => {
                   const immersioUrl = `https://immersio.ma/visite/${tour.slug}`;
                   const iframeCode =
                     tour.iframe ||
@@ -591,6 +628,15 @@ export function ToursTable({ initialTours }: ToursTableProps) {
           setTourToEdit(null);
         }}
         onSuccess={handleModalSuccess}
+      />
+
+      <Pagination
+        page={pager.page}
+        pageCount={pager.pageCount}
+        total={pager.total}
+        pageSize={pager.pageSize}
+        onChange={pager.setPage}
+        noun="visite"
       />
 
       {/* Delete Confirmation Dialog */}

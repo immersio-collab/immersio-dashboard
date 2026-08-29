@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Save, X, Loader2 } from "lucide-react";
 import { LeadPicker } from "@/components/lead-picker";
+import { devisDataFromRecord } from "@/lib/devis-record";
 import {
   DEVIS_OPTIONS,
   HEBERGEMENT_DUREES,
@@ -110,13 +111,19 @@ export function DevisForm({
   onSaved,
   onClose,
   initialLeadId,
+  devis,
 }: {
   onSaved: (d: DevisRecord) => void;
   onClose: () => void;
   /** Lead à présélectionner (ex. bouton « Créer un devis » de la fiche lead). */
   initialLeadId?: string | null;
+  /** Devis à modifier. Absent = création. */
+  devis?: DevisRecord | null;
 }) {
-  const [data, setData] = useState<DevisData>(emptyDevis);
+  const isEdit = !!devis;
+  const [data, setData] = useState<DevisData>(() =>
+    devis ? devisDataFromRecord(devis) : emptyDevis()
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -144,8 +151,26 @@ export function DevisForm({
     });
   }
 
+  /**
+   * Met à jour un champ.
+   *
+   * Un devis rouvert porte `tour3dOverride` : le montant exact qui a été
+   * chiffré au client, figé pour que la réimpression soit fidèle. Dès que
+   * l'agent touche une entrée du calcul, ce gel n'a plus lieu d'être — sinon
+   * changer la superficie laisserait le prix inchangé, sans rien dire.
+   */
+  const PRICING_KEYS: ReadonlyArray<keyof DevisData> = [
+    "typeBien",
+    "superficie",
+    "basePrice",
+    "tour3dManualPrice",
+  ];
   const set = <K extends keyof DevisData>(k: K, v: DevisData[K]) =>
-    setData((d) => ({ ...d, [k]: v }));
+    setData((d) => ({
+      ...d,
+      [k]: v,
+      ...(PRICING_KEYS.includes(k) ? { tour3dOverride: undefined } : null),
+    }));
 
   const totals = useMemo(() => computeTotals(data), [data]);
 
@@ -157,7 +182,11 @@ export function DevisForm({
    * which is how the original behaved. Returning the same state object when
    * nothing changed keeps this out of a render loop.
    */
-  const overrides = useRef<Set<string>>(new Set());
+  // En édition, chaque montant vient d'un document déjà envoyé : il est traité
+  // comme saisi à la main pour qu'aucune suggestion ne l'écrase en silence.
+  const overrides = useRef<Set<string>>(
+    new Set(isEdit ? ["h1", "h3", "h6", "h12", "h24", "remise"] : [])
+  );
   const [autoPricing, setAutoPricing] = useState(false);
 
   useEffect(() => {
@@ -255,21 +284,25 @@ export function DevisForm({
           data.basePrice > 0 &&
           !!data.typeBien &&
           !!data.superficie,
-        statut: "En attente",
-        lead_id: selectedLead?.leadId ?? null,
-        pdf_url: null,
+        // Un devis rouvert garde son statut : corriger une faute de frappe ne
+        // doit pas remettre « En attente » un devis déjà accepté.
+        statut: devis?.statut ?? "En attente",
+        lead_id: selectedLead?.leadId ?? (isEdit ? (devis!.lead_id ?? null) : null),
+        ...(isEdit ? null : { pdf_url: null }),
       };
 
-      const res = await fetch("/api/devis", {
-        method: "POST",
+      const res = await fetch(isEdit ? `/api/devis/${devis!.id}` : "/api/devis", {
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
 
-      // Re-render with the number the database just allocated, so the archived
-      // PDF carries it rather than the "N° DEVIS" placeholder.
+      // Re-render with the quotation number: allocated by the database on
+      // creation, unchanged on edit. The archived PDF then carries it rather
+      // than the "N° DEVIS" placeholder, and a correction replaces the stored
+      // document instead of leaving the client's copy as the only truth.
       const withNumber = { ...data, devisNumber: json.data.devis_number as string };
       setData(withNumber);
 
@@ -307,7 +340,9 @@ export function DevisForm({
         {/* ── Formulaire ── */}
         <div className="w-[46%] min-w-[360px] flex flex-col border-r border-border">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
-            <h2 className="text-sm font-semibold text-text">Nouveau devis</h2>
+            <h2 className="text-sm font-semibold text-text">
+              {isEdit ? `Modifier le devis ${devis!.devis_number}` : "Nouveau devis"}
+            </h2>
             <button onClick={onClose} className="p-1 rounded text-text-muted hover:text-text hover:bg-surface-muted" aria-label="Fermer">
               <X className="w-4 h-4" />
             </button>
@@ -508,7 +543,7 @@ export function DevisForm({
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              {saving ? "Enregistrement…" : "Enregistrer le devis"}
+              {saving ? "Enregistrement…" : isEdit ? "Enregistrer les modifications" : "Enregistrer le devis"}
             </button>
           </div>
         </div>

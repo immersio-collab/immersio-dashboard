@@ -15,6 +15,32 @@ import type { PortfolioProjectRecord } from "@/types";
 import { PORTFOLIO_SECTORS } from "@/types";
 import { PortfolioModal } from "./portfolio-modal";
 import { PortfolioDeleteDialog } from "./portfolio-delete-dialog";
+import {
+  ExportCsvButton,
+  Pagination,
+  SortHeader,
+  usePagination,
+  useSort,
+} from "@/components/table";
+import type { CsvColumn } from "@/lib/csv";
+
+type PfSortKey = "name" | "language" | "sector" | "city" | "published_at" | "status";
+
+const CSV_COLUMNS: ReadonlyArray<CsvColumn<PortfolioProjectRecord>> = [
+  { header: "Projet", value: (p) => p.name },
+  { header: "Slug", value: (p) => p.slug },
+  { header: "Langue", value: (p) => p.language },
+  { header: "Secteur", value: (p) => p.sector },
+  { header: "Ville", value: (p) => p.city },
+  { header: "Surface", value: (p) => p.surface },
+  { header: "Délai", value: (p) => p.delivery_time },
+  { header: "Livrables", value: (p) => (p.deliverables ?? []).join(" + ") },
+  { header: "Visite 3D", value: (p) => p.embed_url },
+  { header: "Client (lead)", value: (p) => p.lead_id ?? "" },
+  { header: "Sujet lié", value: (p) => p.linked_topic_id },
+  { header: "Statut", value: (p) => p.status },
+  { header: "Publié le", value: (p) => p.published_at },
+];
 
 const PUBLISHED = "Published";
 
@@ -74,6 +100,20 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
       );
     });
   }, [projects, query, language, sector]);
+
+  const { sort, toggle, sorted } = useSort<PortfolioProjectRecord, PfSortKey>(
+    visible,
+    {
+      name: (p) => p.name,
+      language: (p) => p.language,
+      sector: (p) => p.sector,
+      city: (p) => p.city,
+      published_at: (p) => p.published_at,
+      status: (p) => p.status,
+    },
+    { key: "published_at", dir: "desc" }
+  );
+  const pager = usePagination(sorted);
 
   const publishedCount = projects.filter((p) => p.status === PUBLISHED).length;
   const unpairedCount = projects.length - pairedIds.size;
@@ -168,6 +208,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
           <option value="English">Anglais</option>
         </select>
 
+        <ExportCsvButton rows={sorted} columns={CSV_COLUMNS} fileNamePrefix="portfolio" />
         <select className={select} value={sector} onChange={(e) => setSector(e.target.value)}>
           <option value="all">Tous les secteurs</option>
           {PORTFOLIO_SECTORS.map((s) => (
@@ -180,17 +221,17 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-surface-subtle border-b border-border">
             <tr className="text-left text-text-muted">
-              <th className="px-3 py-2 font-medium">Projet</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Langue</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Secteur</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Ville</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Publié le</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Statut</th>
+              <SortHeader label="Projet" sortKey="name" sort={sort} onToggle={toggle} />
+              <SortHeader label="Langue" sortKey="language" sort={sort} onToggle={toggle} />
+              <SortHeader label="Secteur" sortKey="sector" sort={sort} onToggle={toggle} />
+              <SortHeader label="Ville" sortKey="city" sort={sort} onToggle={toggle} />
+              <SortHeader label="Publié le" sortKey="published_at" sort={sort} onToggle={toggle} />
+              <SortHeader label="Statut" sortKey="status" sort={sort} onToggle={toggle} />
               <th className="px-3 py-2 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {visible.length === 0 && (
+            {pager.slice.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-text-subtle">
                   Aucun projet ne correspond.
@@ -198,7 +239,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
               </tr>
             )}
 
-            {visible.map((p) => {
+            {pager.slice.map((p) => {
               const isPaired = pairedIds.has(p.id);
               const locale = p.language === "French" ? "fr" : "en";
               const publicPath = p.language === "French" ? "portfolio" : "our-work";
@@ -280,6 +321,15 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
         onClose={() => setModalOpen(false)}
         onSaved={onSaved}
       />
+      <Pagination
+        page={pager.page}
+        pageCount={pager.pageCount}
+        total={pager.total}
+        pageSize={pager.pageSize}
+        onChange={pager.setPage}
+        noun="projet"
+      />
+
       <PortfolioDeleteDialog
         project={toDelete}
         isDeleting={deleting}

@@ -14,6 +14,31 @@ import {
 import type { BlogPostRecord } from "@/types";
 import { BlogModal } from "./blog-modal";
 import { BlogDeleteDialog } from "./blog-delete-dialog";
+import {
+  ExportCsvButton,
+  Pagination,
+  SortHeader,
+  usePagination,
+  useSort,
+} from "@/components/table";
+import type { CsvColumn } from "@/lib/csv";
+
+type BlogSortKey = "name" | "language" | "category_label" | "published_date" | "updated_at" | "status";
+
+const CSV_COLUMNS: ReadonlyArray<CsvColumn<BlogPostRecord>> = [
+  { header: "Titre", value: (p) => p.name },
+  { header: "Slug", value: (p) => p.slug },
+  { header: "Langue", value: (p) => p.language },
+  { header: "Catégorie", value: (p) => p.category_label },
+  { header: "Auteur", value: (p) => p.author_name },
+  { header: "Temps de lecture", value: (p) => p.read_time },
+  { header: "Titre SEO", value: (p) => p.meta_title },
+  { header: "Description SEO", value: (p) => p.meta_description },
+  { header: "Sujet lié", value: (p) => p.linked_topic_id },
+  { header: "Statut", value: (p) => p.status },
+  { header: "Publié le", value: (p) => p.published_date },
+  { header: "Modifié le", value: (p) => p.updated_at },
+];
 
 const PUBLISHED = "Published";
 
@@ -71,6 +96,20 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
       );
     });
   }, [posts, query, language, status]);
+
+  const { sort, toggle, sorted } = useSort<BlogPostRecord, BlogSortKey>(
+    visible,
+    {
+      name: (p) => p.name,
+      language: (p) => p.language,
+      category_label: (p) => p.category_label,
+      published_date: (p) => p.published_date,
+      updated_at: (p) => p.updated_at,
+      status: (p) => p.status,
+    },
+    { key: "published_date", dir: "desc" }
+  );
+  const pager = usePagination(sorted);
 
   const publishedCount = posts.filter((p) => p.status === PUBLISHED).length;
   const unpairedCount = posts.length - pairedIds.size;
@@ -167,6 +206,7 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
           <option value="English">Anglais</option>
         </select>
 
+        <ExportCsvButton rows={sorted} columns={CSV_COLUMNS} fileNamePrefix="blog" />
         <select className={select} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
           <option value="all">Tous les statuts</option>
           <option value="published">Publiés</option>
@@ -179,17 +219,17 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-surface-subtle border-b border-border">
             <tr className="text-left text-text-muted">
-              <th className="px-3 py-2 font-medium">Article</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Langue</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Catégorie</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Publié le</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Modifié le</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Statut</th>
+              <SortHeader label="Article" sortKey="name" sort={sort} onToggle={toggle} />
+              <SortHeader label="Langue" sortKey="language" sort={sort} onToggle={toggle} />
+              <SortHeader label="Catégorie" sortKey="category_label" sort={sort} onToggle={toggle} />
+              <SortHeader label="Publié le" sortKey="published_date" sort={sort} onToggle={toggle} />
+              <SortHeader label="Modifié le" sortKey="updated_at" sort={sort} onToggle={toggle} />
+              <SortHeader label="Statut" sortKey="status" sort={sort} onToggle={toggle} />
               <th className="px-3 py-2 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {visible.length === 0 && (
+            {pager.slice.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-text-subtle">
                   Aucun article ne correspond.
@@ -197,7 +237,7 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
               </tr>
             )}
 
-            {visible.map((p) => {
+            {pager.slice.map((p) => {
               const isPaired = pairedIds.has(p.id);
               const locale = p.language === "French" ? "fr" : "en";
               return (
@@ -270,6 +310,15 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        page={pager.page}
+        pageCount={pager.pageCount}
+        total={pager.total}
+        pageSize={pager.pageSize}
+        onChange={pager.setPage}
+        noun="article"
+      />
 
       <BlogModal post={editing} open={modalOpen} onClose={() => setModalOpen(false)} onSaved={onSaved} />
       <BlogDeleteDialog

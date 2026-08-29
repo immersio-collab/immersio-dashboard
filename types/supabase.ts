@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       devis: {
         Row: {
+          archived: boolean
           id: string
           devis_number: string
           client_nom: string
@@ -44,6 +45,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived?: boolean
           id?: string
           devis_number?: string
           client_nom: string
@@ -72,6 +74,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived?: boolean
           id?: string
           devis_number?: string
           client_nom?: string
@@ -103,6 +106,7 @@ export type Database = {
       }
       blog_posts: {
         Row: {
+          archived: boolean
           id: string
           slug: string
           language: string
@@ -124,6 +128,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived?: boolean
           id?: string
           slug: string
           language: string
@@ -145,6 +150,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived?: boolean
           id?: string
           slug?: string
           language?: string
@@ -268,6 +274,8 @@ export type Database = {
       }
       portfolio_projects: {
         Row: {
+          lead_id: string | null
+          archived: boolean
           id: string
           slug: string
           language: string
@@ -289,6 +297,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          lead_id?: string | null
+          archived?: boolean
           id?: string
           slug: string
           language: string
@@ -310,6 +320,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          lead_id?: string | null
+          archived?: boolean
           id?: string
           slug?: string
           language?: string
@@ -334,6 +346,7 @@ export type Database = {
       }
       tours: {
         Row: {
+          archived: boolean
           id: string
           slug: string
           property_name: string
@@ -346,6 +359,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived?: boolean
           id?: string
           slug: string
           property_name: string
@@ -358,6 +372,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived?: boolean
           id?: string
           slug?: string
           property_name?: string

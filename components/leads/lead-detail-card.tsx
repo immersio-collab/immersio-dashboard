@@ -33,6 +33,7 @@ import {
 import { getLeadAlerts, getRappelStatus, isRappelDue, isRappelToday } from "@/lib/lead-alerts";
 import { RelanceVariationsModal } from "@/components/leads/relance-variations-modal";
 import { formatPhoneForWhatsApp, getWhatsAppUrl } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/table";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -99,11 +100,13 @@ function ToggleSwitch({
   checked,
   onChange,
   label,
+  disabled,
 }: {
   id: string;
   checked: boolean;
   onChange: (val: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -112,9 +115,11 @@ function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={[
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1",
+        "relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         checked ? "bg-accent" : "bg-border-strong",
       ].join(" ")}
     >
@@ -190,6 +195,7 @@ export function LeadDetailCard({
   const devisInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingDevis, setIsUploadingDevis] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [confirmDevisDelete, setConfirmDevisDelete] = useState(false);
 
   // Devis liés à ce lead (module Devis, via devis.lead_id).
   const [linkedDevis, setLinkedDevis] = useState<DevisRecord[]>([]);
@@ -360,8 +366,6 @@ export function LeadDetailCard({
   }
 
   async function handleDevisDelete() {
-    if (!confirm("Voulez-vous vraiment supprimer ce devis PDF ?")) return;
-
     setIsUploadingDevis(true);
     setUploadError(null);
     try {
@@ -378,6 +382,7 @@ export function LeadDetailCard({
         ...prev,
         devisUrl: undefined,
       }));
+      setConfirmDevisDelete(false);
       router.refresh();
     } catch (err: any) {
       setUploadError(err.message || "Échec de la suppression.");
@@ -418,7 +423,14 @@ export function LeadDetailCard({
       "relance3Fait",
     ];
 
+    // Les champs déduits du devis lié ne sont pas persistés : les écrire
+    // recréerait la copie divergente que la dérivation vient de supprimer.
+    const derived: (keyof Lead)[] = formData.devisDerive
+      ? ["devisEnvoye", "devisUrl", "prixProposeMAD"]
+      : [];
+
     for (const k of editableKeys) {
+      if (derived.includes(k)) continue;
       if (formData[k] !== lead[k]) {
         fieldsToUpdate[k] = formData[k] as any;
       }
@@ -468,6 +480,7 @@ export function LeadDetailCard({
   const rappelStatus = getRappelStatus(formData);
 
   return (
+    <>
     <div className="flex flex-col h-full bg-surface border-l border-border animate-in slide-in-from-right-2 duration-200">
       {/* ── Header ── */}
       <div className="border-b border-border px-4 py-3 flex-shrink-0">
@@ -823,10 +836,16 @@ export function LeadDetailCard({
                     checked={formData.devisEnvoye === "Oui"}
                     onChange={(val) => handleToggle("devisEnvoye", val)}
                     label="Devis envoyé"
+                    disabled={!!formData.devisDerive}
                   />
                   <span className="text-xs text-text-muted">
                     {formData.devisEnvoye === "Oui" ? "Oui" : "Non"}
                   </span>
+                  {formData.devisDerive && (
+                    <span className="text-[10px] text-text-subtle">
+                      déduit du devis lié
+                    </span>
+                  )}
                 </div>
 
                 {/* PDF Devis upload / display box */}
@@ -865,7 +884,7 @@ export function LeadDetailCard({
                         </button>
                         <button
                           type="button"
-                          onClick={handleDevisDelete}
+                          onClick={() => setConfirmDevisDelete(true)}
                           disabled={isUploadingDevis}
                           className="p-1 hover:bg-surface rounded text-text-muted hover:text-danger transition-colors"
                           title="Supprimer le devis"
@@ -976,6 +995,12 @@ export function LeadDetailCard({
               <input
                 id="d-prix"
                 type="text"
+                readOnly={!!formData.devisDerive}
+                title={
+                  formData.devisDerive
+                    ? "Montant du devis lié — modifiable depuis le module Devis."
+                    : undefined
+                }
                 value={formData.prixProposeMAD}
                 onChange={(e) =>
                   handleChange("prixProposeMAD", e.target.value)
@@ -1266,5 +1291,23 @@ export function LeadDetailCard({
         </div>
       </div>
     </div>
+
+      <ConfirmDialog
+        open={confirmDevisDelete}
+        title="Retirer ce devis PDF ?"
+        message={
+          <p>
+            Le fichier est détaché de la fiche de{" "}
+            <span className="font-medium text-text">{lead.nom || "ce lead"}</span>. Il reste stocké
+            dans Supabase et peut être ré-importé.
+          </p>
+        }
+        confirmLabel="Retirer le PDF"
+        pendingLabel="Retrait…"
+        isPending={isUploadingDevis}
+        onConfirm={handleDevisDelete}
+        onCancel={() => setConfirmDevisDelete(false)}
+      />
+    </>
   );
 }

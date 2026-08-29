@@ -1,8 +1,19 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AlertTriangle, Users, RefreshCw, Copy, Clock, CalendarClock } from "lucide-react";
+import {
+  Users,
+  RefreshCw,
+  Copy,
+  Clock,
+  CalendarClock,
+  ReceiptText,
+  FileText,
+  FolderOpen,
+  Globe,
+} from "lucide-react";
 
 import { getLeads, getLeadAlerts } from "@/lib/leads";
+import { getModuleStats } from "@/lib/dashboard-stats";
 import type { Lead, LeadAlert, LeadAlertKind } from "@/types";
 
 export const metadata: Metadata = {
@@ -32,35 +43,53 @@ function StatCard({
   value,
   icon: Icon,
   highlight,
+  href,
+  sub,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   icon: React.ElementType;
   /** When true, the number is shown in accent color to draw attention. */
   highlight?: boolean;
+  /** Rend la carte cliquable vers le module concerné. */
+  href?: string;
+  /** Ligne secondaire — un montant, un contexte. */
+  sub?: string;
 }) {
-  return (
-    <div className="card p-5 flex flex-col gap-3">
+  const emphasise = highlight && typeof value === "number" && value > 0;
+  const body = (
+    <>
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-text-muted uppercase tracking-wide">
           {label}
         </span>
-        <Icon
-          size={15}
-          className="text-text-subtle flex-shrink-0"
-          aria-hidden="true"
-        />
+        <Icon size={15} className="text-text-subtle flex-shrink-0" aria-hidden="true" />
       </div>
-      <span
-        className={[
-          "text-3xl font-semibold tabular-nums",
-          highlight && value > 0 ? "text-accent" : "text-text",
-        ].join(" ")}
-      >
-        {value}
-      </span>
-    </div>
+      <div>
+        <span
+          className={[
+            "text-3xl font-semibold tabular-nums",
+            emphasise ? "text-accent" : "text-text",
+          ].join(" ")}
+        >
+          {value}
+        </span>
+        {sub && <span className="block text-xs text-text-muted mt-1">{sub}</span>}
+      </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="card p-5 flex flex-col gap-3 hover:border-accent/40 hover:bg-surface-muted/40 transition-colors"
+      >
+        {body}
+      </Link>
+    );
+  }
+  return <div className="card p-5 flex flex-col gap-3">{body}</div>;
 }
 
 /** Icon used per alert kind in the alert list. */
@@ -133,7 +162,11 @@ function AlertRow({
  * No client-side JS is needed for the initial view.
  */
 export default async function DashboardIndexPage() {
-  const leads = await getLeads();
+  // Les deux lectures sont indépendantes : les paralléliser évite d'ajouter
+  // la latence des modules à celle des leads.
+  const [leads, modules] = await Promise.all([getLeads(), getModuleStats()]);
+  const mad = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} MAD`;
+  const indispo = (name: string) => modules.indisponibles.includes(name);
 
   // ── Compute counters ───────────────────────────────────────────────────────
   let relancesEnRetard = 0;
@@ -170,17 +203,20 @@ export default async function DashboardIndexPage() {
     <div className="space-y-8 max-w-4xl">
       {/* ── KPI counters ── */}
       <section aria-label="Compteurs">
+        <h2 className="text-sm font-medium text-text mb-3">Leads</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Leads actifs"
             value={leads.length}
             icon={Users}
+            href="/dashboard/leads"
           />
           <StatCard
             label="Relances en retard"
             value={relancesEnRetard}
             icon={RefreshCw}
             highlight
+            href="/dashboard/leads?filter=retard"
           />
           <StatCard
             label="Doublons non résolus"
@@ -193,8 +229,57 @@ export default async function DashboardIndexPage() {
             value={jamaisContactes}
             icon={Clock}
             highlight
+            href="/dashboard/leads?filter=nouveaux"
           />
         </div>
+      </section>
+
+      {/* ── Les quatre autres modules ── */}
+      <section aria-label="Autres modules">
+        <h2 className="text-sm font-medium text-text mb-3">Le reste de l&apos;activité</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Devis en attente"
+            value={indispo("devis") ? "—" : modules.devisEnAttente}
+            icon={ReceiptText}
+            highlight
+            href="/dashboard/devis"
+            sub={
+              indispo("devis")
+                ? "Module indisponible"
+                : `${mad(modules.devisMontantEnAttente)} en jeu`
+            }
+          />
+          <StatCard
+            label="Brouillons blog"
+            value={indispo("blog") ? "—" : modules.blogBrouillons}
+            icon={FileText}
+            href="/dashboard/blog"
+            sub={indispo("blog") ? "Module indisponible" : "À publier"}
+          />
+          <StatCard
+            label="Projets non publiés"
+            value={indispo("portfolio") ? "—" : modules.portfolioBrouillons}
+            icon={FolderOpen}
+            href="/dashboard/portfolio"
+            sub={indispo("portfolio") ? "Module indisponible" : "À publier"}
+          />
+          <StatCard
+            label="Visites hors ligne"
+            value={indispo("tours") ? "—" : modules.toursInactifs}
+            icon={Globe}
+            href="/dashboard/tours"
+            sub={indispo("tours") ? "Module indisponible" : "Créées, non publiées"}
+          />
+        </div>
+        {!indispo("devis") && modules.devisAcceptesMontant > 0 && (
+          <p className="text-xs text-text-muted mt-3">
+            Devis acceptés à ce jour :{" "}
+            <span className="font-medium text-text tabular-nums">
+              {mad(modules.devisAcceptesMontant)}
+            </span>
+          </p>
+        )}
       </section>
 
       {/* ── Alert list ── */}

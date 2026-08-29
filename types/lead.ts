@@ -134,6 +134,14 @@ export interface Lead {
   /** URL du devis PDF stocké sur Supabase Storage. */
   devisUrl?: string;
 
+  /**
+   * Calculé, jamais stocké : true quand un devis du module Devis est rattaché
+   * à ce lead. Les trois champs ci-dessus (devisEnvoye, devisUrl,
+   * prixProposeMAD) en sont alors déduits et deviennent lecture seule — sans
+   * quoi la fiche et le module Devis peuvent afficher deux vérités.
+   */
+  devisDerive?: boolean;
+
   /** "Oui" | "Non" | "" — démo/visite virtuelle envoyée. */
   demoEnvoye: string;
 

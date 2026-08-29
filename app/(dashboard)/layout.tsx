@@ -1,5 +1,11 @@
 import { SidebarNav } from "@/components/sidebar-nav";
-import { getLeads, getLeadAlerts, isRappelDue, isRappelToday, hasActiveRappel } from "@/lib/leads";
+import {
+  getLeadsForBadges,
+  getLeadAlerts,
+  isRappelDue,
+  isRappelToday,
+  hasActiveRappel,
+} from "@/lib/leads";
 
 /**
  * Dashboard route-group layout.
@@ -17,7 +23,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const leads = await getLeads();
+  // Colonnes strictement nécessaires aux pastilles — voir getLeadsForBadges.
+  const leads = await getLeadsForBadges();
   
   const nouveauxCount = leads.filter((l) => l.statut === "Nouveau").length;
   const retardCount = leads.filter((l) => 
