@@ -33,15 +33,15 @@ export type LeadCanal =
   | "";
 
 /**
- * Type de bien immobilier visité.
+ * Type de bien (secteur) du lead.
+ *
+ * Les valeurs canoniques sont les libellés français du vocabulaire partagé
+ * (types/vocabulaire.ts : Immobilier, Médical, Écoles, Bureaux, Événementiel,
+ * Hôtels, Riads, Sport, Showrooms, Autre). Le champ reste un `string` libre :
+ * les leads historiques et l'option « Autre » du formulaire portent des
+ * valeurs hors liste, que les selects savent réafficher.
  */
-export type LeadTypeBien =
-  | "Immobilier"
-  | "Cabinet Médical"
-  | "Ecole"
-  | "Bureau"
-  | "Autre"
-  | "";
+export type LeadTypeBien = string;
 
 /**
  * Statut global de la relation commerciale.

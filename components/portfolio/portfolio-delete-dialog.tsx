@@ -27,7 +27,7 @@ export function PortfolioDeleteDialog({
             <AlertTriangle className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-text">Supprimer ce projet ?</h2>
+            <h2 className="text-sm font-semibold text-text">Archiver ce projet ?</h2>
             <p className="text-xs text-text-muted mt-1 break-words">{project.name}</p>
           </div>
           <button
@@ -41,14 +41,15 @@ export function PortfolioDeleteDialog({
         </div>
 
         <div className="p-5 space-y-3">
-          {/* The URL is indexed: deleting turns a ranked page into a 404. */}
+          {/* Archiver = soft-delete : conservé dans Supabase, retiré du
+              dashboard, du site et du sitemap. L'URL publique devient une 404. */}
           <p className="text-xs text-text-muted leading-relaxed">
-            L&apos;URL{" "}
+            Le projet sera <strong className="text-text">archivé</strong> : il reste conservé
+            dans Supabase mais disparaît du dashboard et du site. L&apos;URL{" "}
             <span className="text-accent break-all">
               /{locale}/{publicPath}/{project.slug}
             </span>{" "}
-            est référencée par Google. La supprimer la transforme en 404 et fait perdre son
-            positionnement.
+            est référencée par Google et deviendra une 404.
           </p>
           {/* Deleting one half of a pair also strips the survivor's hreflang. */}
           <p className="text-xs text-text-muted leading-relaxed">
@@ -76,7 +77,7 @@ export function PortfolioDeleteDialog({
             disabled={isDeleting}
             className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
           >
-            {isDeleting ? "Suppression…" : "Supprimer définitivement"}
+            {isDeleting ? "Archivage…" : "Archiver le projet"}
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSessionCookie } from "@/lib/session";
-import { getProjectById, updateProject, deleteProject, PortfolioError } from "@/lib/portfolio";
+import { getProjectById, updateProject, archiveProject, PortfolioError } from "@/lib/portfolio";
 import { revalidatePortfolio } from "@/lib/revalidate";
 import type { PortfolioProjectUpdate } from "@/types";
 
@@ -49,7 +49,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   try {
     const existing = await getProjectById(id);
-    await deleteProject(id);
+    await archiveProject(id);
     if (existing) await revalidatePortfolio([existing.slug]);
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {

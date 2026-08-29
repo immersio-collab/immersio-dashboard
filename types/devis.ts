@@ -6,32 +6,34 @@
  * columns so the existing rows can be imported without a mapping table.
  */
 
+import { SECTEURS, SUPERFICIES } from "./vocabulaire";
+
 export type DevisStatut = "En attente" | "Accepté" | "Refusé";
 
 export const DEVIS_STATUTS: ReadonlyArray<DevisStatut> = ["En attente", "Accepté", "Refusé"];
 
-/** Property types, with the multiplier applied to the base 3D tour price. */
-export const TYPE_BIEN_OPTIONS = [
-  { value: "appartement", label: "Appartement", coef: 1.0 },
-  { value: "villa", label: "Villa", coef: 1.15 },
-  { value: "showroom", label: "Showroom", coef: 1.2 },
-  { value: "salle_sport", label: "Salle de sport", coef: 1.25 },
-  { value: "riad", label: "Riad", coef: 1.35 },
-  { value: "residence", label: "Résidence", coef: 1.4 },
-  { value: "evenementiel", label: "Événementiel", coef: 1.4 },
-  { value: "hotel", label: "Hôtel", coef: 1.45 },
-  { value: "autre", label: "Autre", coef: 1.4 },
-] as const;
+/**
+ * Property types, with the multiplier applied to the base 3D tour price.
+ *
+ * Derived from the shared vocabulary (types/vocabulaire.ts) so the quotation
+ * speaks the same language as the leads, the portfolio and the contact form.
+ * The historical Appartement/Villa/Résidence split is gone: older quotations
+ * reprint faithfully through the `typeBienAutre` fallback in devis-record.ts.
+ */
+export const TYPE_BIEN_OPTIONS: ReadonlyArray<{ value: string; label: string; coef: number }> =
+  SECTEURS.map((s) => ({ value: s.value, label: s.fr, coef: s.coef }));
 
-/** Surface brackets, with their multiplier. */
-export const SUPERFICIE_OPTIONS = [
-  { value: "<50", label: "Moins de 50 m²", coef: 1.0 },
-  { value: "50-100", label: "50 – 100 m²", coef: 1.3 },
-  { value: "100-200", label: "100 – 200 m²", coef: 1.6 },
-  { value: "200-500", label: "200 – 500 m²", coef: 2.0 },
-  { value: "500-1000", label: "500 – 1000 m²", coef: 2.6 },
-  { value: ">1000", label: "Plus de 1000 m²", coef: 3.5 },
-] as const;
+/**
+ * Surface brackets, with their multiplier.
+ *
+ * `coef: null` (Plus de 500 m²) means the 3D tour price is typed manually —
+ * "sur devis" — instead of being derived from the base price.
+ */
+export const SUPERFICIE_OPTIONS: ReadonlyArray<{
+  value: string;
+  label: string;
+  coef: number | null;
+}> = SUPERFICIES.map((s) => ({ value: s.value, label: s.label, coef: s.coef }));
 
 /**
  * Add-on options. `label` and `desc` are printed verbatim in the PDF, so they
@@ -144,6 +146,11 @@ export interface DevisData {
   superficieOverride?: string;
   /** Base price before the type and surface multipliers. */
   basePrice: number;
+  /**
+   * Manually typed 3D tour price, used when the surface bracket has no
+   * coefficient ("Plus de 500 m²" — sur devis). Ignored otherwise.
+   */
+  tour3dManualPrice: number;
   /**
    * Exact tour price of a saved quotation.
    *

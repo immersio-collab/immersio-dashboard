@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSessionCookie } from "@/lib/session";
-import { getPostById, updatePost, deletePost, BlogError } from "@/lib/blog";
+import { getPostById, updatePost, archivePost, BlogError } from "@/lib/blog";
 import { revalidateBlog } from "@/lib/revalidate";
 import type { BlogPostUpdate } from "@/types";
 
@@ -53,7 +53,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   try {
     const existing = await getPostById(id);
 
-    await deletePost(id);
+    await archivePost(id);
 
     if (existing) await revalidateBlog([existing.slug]);
 

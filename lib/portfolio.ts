@@ -71,7 +71,10 @@ async function selectRows(filter: (q: any) => any): Promise<PortfolioProjectReco
   const supabase = getSupabaseClient();
   const { data, error } = await filter(supabase.from("portfolio_projects").select("*"));
   if (error) throw new PortfolioError(`Supabase error: ${error.message}`);
-  return (data || []) as PortfolioProjectRecord[];
+  // Soft-delete : les projets archivés n'existent plus pour l'application
+  // (dashboard, API publique, sitemap). Filtré en JS et non dans la requête
+  // pour fonctionner avant comme après la migration SQL créant la colonne.
+  return ((data || []) as PortfolioProjectRecord[]).filter((r) => !r.archived);
 }
 
 /** Published projects for one language, newest first — the portfolio index. */
@@ -136,12 +139,16 @@ export async function getAllSlugs(): Promise<PortfolioSlugEntry[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("portfolio_projects")
-    .select("slug, language, linked_topic_id, updated_at")
+    .select("slug, language, linked_topic_id, updated_at, archived")
     .eq("status", PUBLISHED);
 
   if (error) throw new PortfolioError(`Supabase error: ${error.message}`);
 
-  return (data || []).map((r: any) => ({
+  // Un projet archivé est une 404 publique : il doit disparaître du sitemap
+  // et des alternates hreflang, pas seulement de la page elle-même.
+  return (data || [])
+    .filter((r: any) => !r.archived)
+    .map((r: any) => ({
     slug: r.slug,
     language: r.language as PortfolioLanguage,
     linkedTopicId: r.linked_topic_id ?? "",
@@ -207,8 +214,15 @@ export async function updateProject(
   return data as PortfolioProjectRecord;
 }
 
-export async function deleteProject(id: string): Promise<void> {
+/**
+ * Archive un projet (soft-delete) : conservé en base, retiré du dashboard,
+ * du site et du sitemap. Décision du 29/08/2026 : « supprimer » = archiver.
+ */
+export async function archiveProject(id: string): Promise<void> {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("portfolio_projects").delete().eq("id", id);
+  const { error } = await supabase
+    .from("portfolio_projects")
+    .update({ archived: true, updated_at: new Date().toISOString() } as any)
+    .eq("id", id);
   if (error) throw new PortfolioError(`Supabase error: ${error.message}`);
 }

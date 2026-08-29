@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { FileText, Plus, Search, Trash2, Eye, Download, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FileText, Plus, Search, Archive, Eye, Download, Loader2 } from "lucide-react";
 import type { DevisRecord } from "@/types";
 import { DEVIS_STATUTS } from "@/types";
 import { computeStats } from "@/lib/devis";
@@ -30,6 +31,18 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
   const [formOpen, setFormOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // « Créer un devis » depuis une fiche lead : /dashboard/devis?lead=<leadId>
+  // ouvre le formulaire avec ce lead présélectionné et pré-rempli.
+  const searchParams = useSearchParams();
+  const leadParam = searchParams.get("lead");
+  const [prefilledLeadId, setPrefilledLeadId] = useState<string | null>(null);
+  useEffect(() => {
+    if (leadParam) {
+      setPrefilledLeadId(leadParam);
+      setFormOpen(true);
+    }
+  }, [leadParam]);
 
   function notify(m: string) {
     setToast(m);
@@ -96,16 +109,18 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
     }
   }
 
-  async function remove(d: DevisRecord) {
-    if (!confirm(`Supprimer définitivement le devis ${d.devis_number} ?`)) return;
+  /** Archive (soft-delete) : le devis reste en base, il disparaît de la liste. */
+  async function archiver(d: DevisRecord) {
+    if (!confirm(`Archiver le devis ${d.devis_number} ? Il restera conservé dans Supabase.`))
+      return;
     setBusyId(d.id);
     try {
       const res = await fetch(`/api/devis/${d.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
       setDevis((list) => list.filter((x) => x.id !== d.id));
-      notify(`${d.devis_number} supprimé`);
+      notify(`${d.devis_number} archivé`);
     } catch (e) {
-      notify(e instanceof Error ? e.message : "Suppression impossible");
+      notify(e instanceof Error ? e.message : "Archivage impossible");
     } finally {
       setBusyId(null);
     }
@@ -251,12 +266,12 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => remove(d)}
+                      onClick={() => archiver(d)}
                       disabled={busyId === d.id}
                       className="p-1.5 rounded text-text-muted hover:text-red-600 hover:bg-surface-muted transition-colors disabled:opacity-50"
-                      title="Supprimer"
+                      title="Archiver (conservé dans Supabase)"
                     >
-                      {busyId === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      {busyId === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 </td>
@@ -268,7 +283,11 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
 
       {formOpen && (
         <DevisForm
-          onClose={() => setFormOpen(false)}
+          initialLeadId={prefilledLeadId}
+          onClose={() => {
+            setFormOpen(false);
+            setPrefilledLeadId(null);
+          }}
           onSaved={(d) => {
             setDevis((list) => [d, ...list]);
             notify(`${d.devis_number} enregistré`);

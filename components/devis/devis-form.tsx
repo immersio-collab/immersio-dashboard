@@ -2,21 +2,27 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Save, X, Loader2 } from "lucide-react";
+import { LeadPicker } from "@/components/lead-picker";
 import {
   DEVIS_OPTIONS,
   HEBERGEMENT_DUREES,
   REMISE_AUTO_PCT,
   SUPERFICIE_OPTIONS,
+  SUPERFICIES,
   TYPE_BIEN_OPTIONS,
+  findSecteurByLabel,
+  findSuperficieByLabel,
   type DevisData,
   type DevisOptionId,
   type DevisRecord,
+  type Lead,
 } from "@/types";
 import { buildDevisPdf, devisFileName } from "@/lib/devis-pdf";
 import {
   computeTotals,
   emptyDevis,
   fmt,
+  isManualPricing,
   optionLabel,
   prolongationRate,
   suggestedHebergementPrices,
@@ -24,6 +30,30 @@ import {
   tour3dPrice,
   typeBienLabel,
 } from "@/lib/devis-pricing";
+
+/**
+ * Retrouve la tranche de surface correspondant au champ surface d'un lead :
+ * d'abord par libellé exact (le formulaire du site envoie les libellés du
+ * vocabulaire), sinon en interprétant une valeur numérique libre ("120").
+ */
+function trancheFromLeadSurface(surface: string | undefined) {
+  if (!surface?.trim()) return undefined;
+  const byLabel = findSuperficieByLabel(surface);
+  if (byLabel) return byLabel;
+  // Uniquement une valeur à UN nombre ("120", "120 m²"). Une plage historique
+  // hors vocabulaire ("100 – 300 m²") est ambiguë : concaténer ses bornes en
+  // "100300" la classerait en « Plus de 500 m² » — on laisse alors le choix
+  // à l'agent plutôt que de deviner.
+  const numbers = surface.match(/\d+(?:[.,]\d+)?/g);
+  if (!numbers || numbers.length !== 1) return undefined;
+  const n = parseFloat(numbers[0].replace(",", "."));
+  if (isNaN(n) || n <= 0) return undefined;
+  if (n < 50) return SUPERFICIES[0];
+  if (n <= 100) return SUPERFICIES[1];
+  if (n <= 200) return SUPERFICIES[2];
+  if (n <= 500) return SUPERFICIES[3];
+  return SUPERFICIES[4];
+}
 
 const input =
   "w-full px-2.5 py-1.5 text-xs bg-surface-subtle border border-border rounded-lg text-text placeholder:text-text-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all";
@@ -79,15 +109,40 @@ function Chip({
 export function DevisForm({
   onSaved,
   onClose,
+  initialLeadId,
 }: {
   onSaved: (d: DevisRecord) => void;
   onClose: () => void;
+  /** Lead à présélectionner (ex. bouton « Créer un devis » de la fiche lead). */
+  initialLeadId?: string | null;
 }) {
   const [data, setData] = useState<DevisData>(emptyDevis);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
+
+  // ── Lien avec un lead : tout devis devrait naître d'un lead. ──
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  /** Pré-remplit le devis avec les informations du lead. */
+  function applyLead(lead: Lead) {
+    setSelectedLead(lead);
+    setData((d) => {
+      const secteur = findSecteurByLabel(lead.typeDeBien);
+      const tranche = trancheFromLeadSurface(lead.surface);
+      return {
+        ...d,
+        clientNom: lead.nom || d.clientNom,
+        clientTel: lead.telephone || d.clientTel,
+        clientEmail: lead.email || d.clientEmail,
+        clientVille: lead.ville || d.clientVille,
+        typeBien: secteur ? secteur.value : lead.typeDeBien ? "autre" : d.typeBien,
+        typeBienAutre: secteur ? "" : lead.typeDeBien || d.typeBienAutre,
+        superficie: tranche ? tranche.value : d.superficie,
+      };
+    });
+  }
 
   const set = <K extends keyof DevisData>(k: K, v: DevisData[K]) =>
     setData((d) => ({ ...d, [k]: v }));
@@ -129,7 +184,7 @@ export function DevisForm({
     });
     // Deliberately keyed on the inputs of the tour price only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.basePrice, data.typeBien, data.superficie]);
+  }, [data.basePrice, data.typeBien, data.superficie, data.tour3dManualPrice]);
 
   /**
    * Live preview.
@@ -193,10 +248,15 @@ export function DevisForm({
         notes: data.notes.trim() || null,
         validite_jours: data.validiteJours,
         // The base price was typed rather than derived, so the coefficients did
-        // the work: that is what "auto pricing" meant in the original.
-        auto_pricing_used: data.basePrice > 0 && !!data.typeBien && !!data.superficie,
+        // the work: that is what "auto pricing" meant in the original. La
+        // tranche « Plus de 500 m² » est un prix manuel, donc jamais "auto".
+        auto_pricing_used:
+          !isManualPricing(data.superficie) &&
+          data.basePrice > 0 &&
+          !!data.typeBien &&
+          !!data.superficie,
         statut: "En attente",
-        lead_id: null,
+        lead_id: selectedLead?.leadId ?? null,
         pdf_url: null,
       };
 
@@ -259,6 +319,12 @@ export function DevisForm({
             )}
 
             <Section title="Client">
+              <LeadPicker
+                selected={selectedLead}
+                onSelect={applyLead}
+                onClear={() => setSelectedLead(null)}
+                initialLeadId={initialLeadId}
+              />
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field label="Nom / Établissement">
                   <input className={input} value={data.clientNom} onChange={(e) => set("clientNom", e.target.value)} />
@@ -293,7 +359,12 @@ export function DevisForm({
             <Section title="Superficie">
               <div className="grid grid-cols-3 gap-2">
                 {SUPERFICIE_OPTIONS.map((s) => (
-                  <Chip key={s.value} active={data.superficie === s.value} onClick={() => set("superficie", s.value)} sub={`× ${s.coef}`}>
+                  <Chip
+                    key={s.value}
+                    active={data.superficie === s.value}
+                    onClick={() => set("superficie", s.value)}
+                    sub={s.coef === null ? "sur devis" : `× ${s.coef}`}
+                  >
                     {s.label}
                   </Chip>
                 ))}
@@ -302,14 +373,28 @@ export function DevisForm({
 
             <Section title="Tarification">
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Prix de base (MAD)" hint="Multiplié par les coefficients type et superficie.">
-                  <input
-                    type="number"
-                    className={input}
-                    value={data.basePrice || ""}
-                    onChange={(e) => set("basePrice", parseFloat(e.target.value) || 0)}
-                  />
-                </Field>
+                {isManualPricing(data.superficie) ? (
+                  <Field
+                    label="Prix Tour 3D (MAD, manuel)"
+                    hint="« Plus de 500 m² » : sur devis — le prix se saisit directement, sans coefficients."
+                  >
+                    <input
+                      type="number"
+                      className={input}
+                      value={data.tour3dManualPrice || ""}
+                      onChange={(e) => set("tour3dManualPrice", parseFloat(e.target.value) || 0)}
+                    />
+                  </Field>
+                ) : (
+                  <Field label="Prix de base (MAD)" hint="Multiplié par les coefficients type et superficie.">
+                    <input
+                      type="number"
+                      className={input}
+                      value={data.basePrice || ""}
+                      onChange={(e) => set("basePrice", parseFloat(e.target.value) || 0)}
+                    />
+                  </Field>
+                )}
                 <Field label="Prix Tour 3D calculé">
                   <div className="px-2.5 py-1.5 text-xs bg-accent/10 border border-accent/30 rounded-lg text-text font-semibold tabular-nums">
                     {fmt(totals.tour3d)} MAD

@@ -66,7 +66,10 @@ async function selectRows(filter: (q: any) => any): Promise<BlogPostRecord[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await filter(supabase.from("blog_posts").select("*"));
   if (error) throw new BlogError(`Supabase error: ${error.message}`);
-  return (data || []) as BlogPostRecord[];
+  // Soft-delete : les articles archivés n'existent plus pour l'application
+  // (dashboard, API publique, sitemap). Filtré en JS et non dans la requête
+  // pour fonctionner avant comme après la migration SQL créant la colonne.
+  return ((data || []) as BlogPostRecord[]).filter((r) => !r.archived);
 }
 
 /**
@@ -129,12 +132,16 @@ export async function getAllSlugs(): Promise<BlogSlugEntry[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("blog_posts")
-    .select("slug, language, updated_at, linked_topic_id")
+    .select("slug, language, updated_at, linked_topic_id, archived")
     .eq("status", PUBLISHED);
 
   if (error) throw new BlogError(`Supabase error: ${error.message}`);
 
-  return (data || []).map((r: any) => ({
+  // Un article archivé est une 404 publique : il doit disparaître du sitemap
+  // et des alternates hreflang, pas seulement de la page elle-même.
+  return (data || [])
+    .filter((r: any) => !r.archived)
+    .map((r: any) => ({
     slug: r.slug,
     language: r.language as BlogLanguage,
     last_edited_time: r.updated_at,
@@ -199,8 +206,15 @@ export async function updatePost(id: string, input: BlogPostUpdate): Promise<Blo
   return data as BlogPostRecord;
 }
 
-export async function deletePost(id: string): Promise<void> {
+/**
+ * Archive un article (soft-delete) : conservé en base, retiré du dashboard,
+ * du site et du sitemap. Décision du 29/08/2026 : « supprimer » = archiver.
+ */
+export async function archivePost(id: string): Promise<void> {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ archived: true, updated_at: new Date().toISOString() } as any)
+    .eq("id", id);
   if (error) throw new BlogError(`Supabase error: ${error.message}`);
 }

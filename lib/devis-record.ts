@@ -79,6 +79,7 @@ export function devisDataFromRecord(record: DevisRecord): DevisData {
     // quoted rather than printing an em dash.
     superficieOverride: superfMatch ? undefined : (record.superficie ?? undefined),
     basePrice: 0,
+    tour3dManualPrice: 0,
     tour3dOverride: Number(record.tour3d_price || 0),
     options,
     extraOptions: extraOptions.length ? extraOptions : undefined,

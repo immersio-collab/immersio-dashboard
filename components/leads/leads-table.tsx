@@ -23,6 +23,13 @@ import {
   Filter,
 } from "lucide-react";
 import type { Lead, LeadAlert, LeadAlertKind } from "@/types";
+import {
+  STATUT_OPTIONS as VOCAB_STATUTS,
+  CANAL_OPTIONS as VOCAB_CANAUX,
+  SECTEUR_LABELS_FR,
+  VILLES,
+  STATUS_STYLES as VOCAB_STATUS_STYLES,
+} from "@/types";
 import { 
   getLeadAlerts,
   hasActiveRappel,
@@ -39,42 +46,14 @@ import type { RelanceType } from "@/components/leads/relance-variations-modal";
 // Constants
 // ---------------------------------------------------------------------------
 
-const STATUT_OPTIONS = [
-  "Nouveau",
-  "Contacté",
-  "Intéressé",
-  "Négociation",
-  "Gagné",
-  "Perdu",
-  "En pause",
-] as const;
+// Les listes viennent du vocabulaire partagé types/vocabulaire.ts.
+const STATUT_OPTIONS = VOCAB_STATUTS;
 
-const STATUS_STYLES: Record<string, string> = {
-  Nouveau: "bg-blue-50 text-blue-700 border-blue-200",
-  Contacté: "bg-slate-50 text-slate-700 border-slate-200",
-  Intéressé: "bg-amber-50 text-amber-700 border-amber-200",
-  Négociation: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  Gagné: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Perdu: "bg-rose-50 text-rose-700 border-rose-200",
-  "En pause": "bg-yellow-50 text-yellow-800 border-yellow-200",
-};
+const STATUS_STYLES = VOCAB_STATUS_STYLES;
 
-const CANAL_OPTIONS = [
-  "Instagram",
-  "Facebook",
-  "WhatsApp",
-  "Référence",
-  "Site web",
-  "Autre",
-] as const;
+const CANAL_OPTIONS = VOCAB_CANAUX;
 
-const TYPE_BIEN_OPTIONS = [
-  "Immobilier",
-  "Cabinet Médical",
-  "Ecole",
-  "Bureau",
-  "Autre",
-] as const;
+const TYPE_BIEN_OPTIONS = [...SECTEUR_LABELS_FR, "Autre"] as const;
 
 const SUIVI_OPTIONS = [
   { id: "appelTelephonique", label: "Appel tél." },
@@ -83,13 +62,8 @@ const SUIVI_OPTIONS = [
   { id: "demoEnvoye", label: "Démo envoyée" },
 ] as const;
 
-const VILLE_OPTIONS = [
-  "Rabat",
-  "Casablanca",
-  "Kénitra",
-  "Tanger",
-  "Autre ville",
-] as const;
+// « Autre ville » agrège tout ce qui n'est pas dans la liste canonique.
+const VILLE_OPTIONS = [...VILLES, "Autre ville"] as const;
 
 type SortKey = "dateFormulaire" | "statut" | "nom";
 type SortDir = "asc" | "desc";
@@ -386,8 +360,7 @@ export function LeadsTable({
       // Ville filter
       if (filterVille) {
         if (filterVille === "Autre ville") {
-          const mainCities = ["Rabat", "Casablanca", "Kénitra", "Tanger"];
-          result = result.filter((l) => !mainCities.includes(l.ville || ""));
+          result = result.filter((l) => !VILLES.includes(l.ville || ""));
         } else {
           result = result.filter((l) => l.ville === filterVille);
         }

@@ -1,15 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSessionCookie } from "@/lib/session";
-import { getAllDevis, createDevis, DevisError } from "@/lib/devis";
+import { getAllDevis, getDevisByLead, createDevis, DevisError } from "@/lib/devis";
 import type { DevisInsert } from "@/types";
 
-/** GET /api/devis — every quotation, newest first. */
-export async function GET(_req: NextRequest) {
+/** GET /api/devis — every quotation, newest first. `?leadId=` filtre sur un lead. */
+export async function GET(req: NextRequest) {
   if (!(await hasSessionCookie())) {
     return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   }
   try {
-    return NextResponse.json({ data: await getAllDevis() }, { status: 200 });
+    const leadId = new URL(req.url).searchParams.get("leadId")?.trim();
+    const data = leadId ? await getDevisByLead(leadId) : await getAllDevis();
+    return NextResponse.json({ data }, { status: 200 });
   } catch (err) {
     if (err instanceof DevisError) {
       return NextResponse.json({ error: err.message }, { status: err.status || 502 });

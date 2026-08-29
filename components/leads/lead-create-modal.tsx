@@ -13,38 +13,11 @@ import {
   CheckCircle2
 } from "lucide-react";
 import type { Lead } from "@/types";
+import { STATUT_OPTIONS, CANAL_OPTIONS, SECTEUR_LABELS_FR, VILLES } from "@/types";
 import { getRappelStatus } from "@/lib/lead-alerts";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const STATUT_OPTIONS = [
-  "Nouveau",
-  "Contacté",
-  "Intéressé",
-  "Négociation",
-  "Gagné",
-  "Perdu",
-  "En pause",
-];
-
-const CANAL_OPTIONS = [
-  "Instagram",
-  "Facebook",
-  "WhatsApp",
-  "Référence",
-  "Site web",
-  "Autre",
-];
-
-const TYPE_BIEN_OPTIONS = [
-  "Immobilier",
-  "Cabinet Médical",
-  "Ecole",
-  "Bureau",
-  "Autre",
-];
+// Les listes (statuts, canaux, secteurs, villes) viennent du vocabulaire
+// partagé types/vocabulaire.ts — plus aucune copie locale.
 
 type Tab = "infos" | "suivi" | "notes";
 
@@ -373,9 +346,11 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
                       className="input-base text-sm w-full h-8"
                     >
                       <option value="">—</option>
-                      <option value="Rabat">Rabat</option>
-                      <option value="Casablanca">Casablanca</option>
-                      <option value="Kénitra">Kénitra</option>
+                      {VILLES.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
                       <option value="Autre">Autre</option>
                     </select>
                     {isCustomVille && (
@@ -409,11 +384,12 @@ export function LeadCreateModal({ onClose }: { onClose: () => void }) {
                       className="input-base text-sm w-full h-8"
                     >
                       <option value="">—</option>
-                      {TYPE_BIEN_OPTIONS.map((t) => (
+                      {SECTEUR_LABELS_FR.map((t) => (
                         <option key={t} value={t}>
                           {t}
                         </option>
                       ))}
+                      <option value="Autre">Autre</option>
                     </select>
                     {isCustomTypeBien && (
                       <input

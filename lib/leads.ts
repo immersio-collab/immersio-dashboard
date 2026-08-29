@@ -42,7 +42,10 @@ export async function getLeads(): Promise<Lead[]> {
     .from("leads")
     .select("*")
     .neq("archive", "Oui")
-    .neq("archive", "TRUE"); // Handle different truthy values just in case
+    .neq("archive", "TRUE") // Handle different truthy values just in case
+    // Sans ORDER BY, PostgreSQL ne garantit aucun ordre : l'affichage pouvait
+    // changer d'un rafraîchissement à l'autre. Plus récents d'abord.
+    .order("dateFormulaire", { ascending: false, nullsFirst: false });
 
   if (error) {
     throw new LeadsError(`Supabase error: ${error.message}`);

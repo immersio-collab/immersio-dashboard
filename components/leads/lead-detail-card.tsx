@@ -22,7 +22,14 @@ import {
   CalendarCheck,
   CheckCircle2,
 } from "lucide-react";
-import type { Lead, LeadAlertKind } from "@/types";
+import type { Lead, LeadAlertKind, DevisRecord } from "@/types";
+import {
+  STATUT_OPTIONS,
+  CANAL_OPTIONS,
+  SECTEUR_LABELS_FR,
+  VILLES,
+  STATUS_STYLES,
+} from "@/types";
 import { getLeadAlerts, getRappelStatus, isRappelDue, isRappelToday } from "@/lib/lead-alerts";
 import { RelanceVariationsModal } from "@/components/leads/relance-variations-modal";
 import { formatPhoneForWhatsApp, getWhatsAppUrl } from "@/lib/utils";
@@ -31,44 +38,10 @@ import { formatPhoneForWhatsApp, getWhatsAppUrl } from "@/lib/utils";
 // Constants
 // ---------------------------------------------------------------------------
 
-const STATUT_OPTIONS = [
-  "Nouveau",
-  "Contacté",
-  "Intéressé",
-  "Négociation",
-  "Gagné",
-  "Perdu",
-  "En pause",
-];
-
-const CANAL_OPTIONS = [
-  "Instagram",
-  "Facebook",
-  "WhatsApp",
-  "Référence",
-  "Site web",
-  "Autre",
-];
-
-const TYPE_BIEN_OPTIONS = [
-  "Immobilier",
-  "Cabinet Médical",
-  "Ecole",
-  "Bureau",
-  "Autre",
-];
-
-const VILLE_OPTIONS = ["Rabat", "Casablanca", "Kénitra"];
-
-const STATUS_STYLES: Record<string, string> = {
-  Nouveau: "bg-blue-50 text-blue-700 border-blue-200",
-  Contacté: "bg-slate-50 text-slate-700 border-slate-200",
-  Intéressé: "bg-amber-50 text-amber-700 border-amber-200",
-  Négociation: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  Gagné: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Perdu: "bg-rose-50 text-rose-700 border-rose-200",
-  "En pause": "bg-yellow-50 text-yellow-800 border-yellow-200",
-};
+// Les listes (statuts, canaux, secteurs, villes, styles de statut) viennent
+// du vocabulaire partagé types/vocabulaire.ts — plus aucune copie locale.
+const TYPE_BIEN_OPTIONS = SECTEUR_LABELS_FR;
+const VILLE_OPTIONS = VILLES;
 
 const ALERT_META: Record<
   LeadAlertKind,
@@ -217,6 +190,23 @@ export function LeadDetailCard({
   const devisInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingDevis, setIsUploadingDevis] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Devis liés à ce lead (module Devis, via devis.lead_id).
+  const [linkedDevis, setLinkedDevis] = useState<DevisRecord[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/devis?leadId=${encodeURIComponent(lead.leadId)}`)
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => {
+        if (!cancelled) setLinkedDevis(Array.isArray(j.data) ? j.data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedDevis([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lead.leadId]);
 
   const [isCustomCanal, setIsCustomCanal] = useState(
     !!lead.canal && !CANAL_OPTIONS.includes(lead.canal as any) && lead.canal !== "Autre"
@@ -676,9 +666,11 @@ export function LeadDetailCard({
                   className="input-base text-sm w-full h-8"
                 >
                   <option value="">—</option>
-                  <option value="Rabat">Rabat</option>
-                  <option value="Casablanca">Casablanca</option>
-                  <option value="Kénitra">Kénitra</option>
+                  {VILLE_OPTIONS.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
                   <option value="Autre">Autre</option>
                 </select>
                 {isCustomVille && (
@@ -716,6 +708,7 @@ export function LeadDetailCard({
                       {t}
                     </option>
                   ))}
+                  <option value="Autre">Autre</option>
                 </select>
                 {isCustomTypeBien && (
                   <input
@@ -904,6 +897,63 @@ export function LeadDetailCard({
                   {uploadError && (
                     <p className="text-[11px] text-danger mt-1">{uploadError}</p>
                   )}
+                </div>
+
+                {/* Devis liés (module Devis) : chaque devis créé pour ce lead. */}
+                <div className="pt-1 space-y-1.5">
+                  {linkedDevis.map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center justify-between gap-2 p-2 bg-surface-muted/40 border border-border rounded-md text-xs"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <FileText size={13} className="flex-shrink-0 text-accent" />
+                        <span className="font-medium text-text truncate">{d.devis_number}</span>
+                        <span className="text-text-subtle tabular-nums flex-shrink-0">
+                          {Number(d.total_ttc || 0).toLocaleString("fr-FR")} MAD
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span
+                          className={[
+                            "px-1.5 py-0.5 rounded border text-[10px] font-medium",
+                            d.statut === "Accepté"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : d.statut === "Refusé"
+                                ? "bg-red-50 text-red-700 border-red-200"
+                                : "bg-amber-50 text-amber-800 border-amber-200",
+                          ].join(" ")}
+                        >
+                          {d.statut}
+                        </span>
+                        {d.pdf_url && (
+                          <a
+                            href={d.pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 hover:bg-surface rounded text-text-muted hover:text-accent transition-colors"
+                            title="Ouvrir le PDF du devis"
+                          >
+                            <ExternalLink size={11} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(`/dashboard/devis?lead=${encodeURIComponent(lead.leadId)}`)
+                    }
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-border hover:border-accent text-text-muted hover:text-accent bg-surface hover:bg-surface-muted/50 rounded-md transition-colors w-full justify-center"
+                  >
+                    <FileText size={13} />
+                    <span>
+                      {linkedDevis.length > 0
+                        ? "Créer un autre devis pour ce lead"
+                        : "Créer un devis pour ce lead"}
+                    </span>
+                  </button>
                 </div>
               </div>
             </FieldRow>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSessionCookie } from "@/lib/session";
-import { getDevisById, updateDevis, deleteDevis, DevisError } from "@/lib/devis";
+import { getDevisById, updateDevis, archiveDevis, DevisError } from "@/lib/devis";
 import type { DevisUpdate } from "@/types";
 
 /** PATCH /api/devis/[id] — used for the status and any correction. */
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-/** DELETE /api/devis/[id] */
+/** DELETE /api/devis/[id] — archive (soft-delete) : le devis et son PDF restent en base. */
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   if (!(await hasSessionCookie())) {
     return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
@@ -43,7 +43,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const { id } = params;
 
   try {
-    await deleteDevis(id);
+    await archiveDevis(id);
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
     if (err instanceof DevisError) {

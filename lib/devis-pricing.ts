@@ -21,8 +21,19 @@ export function typeCoef(value: string): number {
   return TYPE_BIEN_OPTIONS.find((t) => t.value === value)?.coef ?? 1;
 }
 
-export function superficieCoef(value: string): number {
-  return SUPERFICIE_OPTIONS.find((s) => s.value === value)?.coef ?? 1;
+/**
+ * Coefficient de la tranche de surface, ou null pour « Plus de 500 m² » :
+ * cette tranche n'a pas de calcul automatique, le prix est saisi à la main.
+ */
+export function superficieCoef(value: string): number | null {
+  const opt = SUPERFICIE_OPTIONS.find((s) => s.value === value);
+  if (!opt) return 1;
+  return opt.coef;
+}
+
+/** True quand la tranche choisie impose un prix de tour saisi manuellement. */
+export function isManualPricing(superficie: string): boolean {
+  return superficieCoef(superficie) === null;
 }
 
 /** Monthly rate offered once the chosen hosting period expires. */
@@ -47,7 +58,10 @@ export function optionLabel(id: DevisOptionId): string {
 export function tour3dPrice(data: DevisData): number {
   // A reprint carries the price the client was quoted, not today's recompute.
   if (typeof data.tour3dOverride === "number") return data.tour3dOverride;
-  return Math.round(data.basePrice * typeCoef(data.typeBien) * superficieCoef(data.superficie));
+  const sCoef = superficieCoef(data.superficie);
+  // « Plus de 500 m² » : sur devis — le prix est celui tapé par l'agent.
+  if (sCoef === null) return Math.round(data.tour3dManualPrice || 0);
+  return Math.round(data.basePrice * typeCoef(data.typeBien) * sCoef);
 }
 
 /**
@@ -126,6 +140,7 @@ export function emptyDevis(): DevisData {
     typeBienAutre: "",
     superficie: "",
     basePrice: 0,
+    tour3dManualPrice: 0,
     options: [],
     hebergementDuree: "",
     hebergementPrices: { "1": 0, "3": 0, "6": 0, "12": 0, "24": 0 },

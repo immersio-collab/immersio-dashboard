@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSessionCookie } from "@/lib/session";
-import { getTourById, updateTour, deleteTour, ToursError } from "@/lib/tours";
+import { getTourById, updateTour, archiveTour, ToursError } from "@/lib/tours";
 import { revalidateTours } from "@/lib/revalidate";
 import type { TourUpdate } from "@/types";
 
@@ -69,7 +69,7 @@ export async function DELETE(
     // window expires.
     const existing = await getTourById(id);
 
-    await deleteTour(id);
+    await archiveTour(id);
 
     if (existing) {
       await revalidateTours([existing.slug]);

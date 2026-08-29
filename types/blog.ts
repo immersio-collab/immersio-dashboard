@@ -29,6 +29,8 @@ export interface BlogPostRecord {
   meta_description: string | null;
   status: string;
   published_date: string | null;
+  /** Soft-delete : true = retiré du dashboard et du site, conservé en base. */
+  archived?: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -24,7 +24,7 @@ export function BlogDeleteDialog({
             <AlertTriangle className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-text">Supprimer cet article ?</h2>
+            <h2 className="text-sm font-semibold text-text">Archiver cet article ?</h2>
             <p className="text-xs text-text-muted mt-1 break-words">{post.name}</p>
           </div>
           <button
@@ -38,17 +38,17 @@ export function BlogDeleteDialog({
         </div>
 
         <div className="p-5 space-y-3">
-          {/* The URL is indexed: deleting turns a ranked page into a 404 and
-              Google eventually drops it, along with whatever links point to it. */}
+          {/* Archiver = soft-delete : conservé dans Supabase, retiré du
+              dashboard, du site et du sitemap. L'URL publique devient une 404. */}
           <p className="text-xs text-text-muted leading-relaxed">
-            L&apos;URL{" "}
-            <span className="text-accent break-all">/blog/{post.slug}</span>{" "}
-            est référencée par Google. La supprimer la transforme en 404 et fait
-            perdre son positionnement.
+            L&apos;article sera <strong className="text-text">archivé</strong> : il reste
+            conservé dans Supabase mais disparaît du dashboard et du site.
           </p>
           <p className="text-xs text-text-muted leading-relaxed">
-            Pour retirer l&apos;article du site sans casser son référencement,
-            passe plutôt son statut en <strong className="text-text">Brouillon</strong>.
+            L&apos;URL <span className="text-accent break-all">/blog/{post.slug}</span> est
+            référencée par Google et deviendra une 404. Pour retirer l&apos;article sans
+            l&apos;archiver, passe plutôt son statut en{" "}
+            <strong className="text-text">Brouillon</strong>.
           </p>
         </div>
 
@@ -67,7 +67,7 @@ export function BlogDeleteDialog({
             disabled={isDeleting}
             className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
           >
-            {isDeleting ? "Suppression…" : "Supprimer définitivement"}
+            {isDeleting ? "Archivage…" : "Archiver l\u2019article"}
           </button>
         </div>
       </div>

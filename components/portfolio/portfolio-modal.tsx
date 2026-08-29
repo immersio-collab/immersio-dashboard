@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { X, AlertTriangle, ExternalLink, Link2Off } from "lucide-react";
-import type { PortfolioProjectRecord } from "@/types";
-import { PORTFOLIO_SECTORS } from "@/types";
+import type { PortfolioProjectRecord, Lead } from "@/types";
+import { PORTFOLIO_SECTORS, LIVRABLES } from "@/types";
+import { LeadPicker } from "@/components/lead-picker";
 
 const TITLE_SUFFIX = " | Immersio.";
 const TITLE_BUDGET = 60 - TITLE_SUFFIX.length;
@@ -22,7 +23,7 @@ type Draft = {
   delivery_time: string;
   cover_image: string;
   embed_url: string;
-  deliverables: string;
+  deliverables: string[];
   meta_title: string;
   meta_description: string;
   status: string;
@@ -32,7 +33,7 @@ type Draft = {
 const empty: Draft = {
   slug: "", language: "French", linked_topic_id: "", name: "", description_html: "",
   city: "", sector: "", surface: "", delivery_time: "", cover_image: "", embed_url: "",
-  deliverables: "", meta_title: "", meta_description: "", status: "Published", published_at: "",
+  deliverables: [], meta_title: "", meta_description: "", status: "Published", published_at: "",
 };
 
 function fromRecord(p: PortfolioProjectRecord): Draft {
@@ -41,7 +42,7 @@ function fromRecord(p: PortfolioProjectRecord): Draft {
     name: p.name, description_html: p.description_html ?? "", city: p.city ?? "",
     sector: p.sector ?? "", surface: p.surface ?? "", delivery_time: p.delivery_time ?? "",
     cover_image: p.cover_image ?? "", embed_url: p.embed_url ?? "",
-    deliverables: (Array.isArray(p.deliverables) ? p.deliverables : []).join("\n"),
+    deliverables: Array.isArray(p.deliverables) ? p.deliverables : [],
     meta_title: p.meta_title ?? "", meta_description: p.meta_description ?? "",
     status: p.status, published_at: p.published_at ?? "",
   };
@@ -88,15 +89,51 @@ export function PortfolioModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Client (lead) pour lequel le projet a été réalisé.
+  // `leadUnlinked` ne devient true que sur un clic « Délier » : un clientLead
+  // resté null (lead archivé, fetch pas encore résolu) ne doit JAMAIS effacer
+  // un lien existant à l'enregistrement.
+  const [clientLead, setClientLead] = useState<Lead | null>(null);
+  const [leadUnlinked, setLeadUnlinked] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     setDraft(project ? fromRecord(project) : empty);
+    setClientLead(null);
+    setLeadUnlinked(false);
     setError(null);
   }, [open, project]);
 
   if (!open) return null;
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
+
+  /** Libellé d'un livrable dans la langue du projet. */
+  const livrableLabel = (l: (typeof LIVRABLES)[number]) =>
+    draft.language === "French" ? l.fr : l.en;
+
+  const toggleLivrable = (label: string) =>
+    setDraft((d) => ({
+      ...d,
+      deliverables: d.deliverables.includes(label)
+        ? d.deliverables.filter((x) => x !== label)
+        : [...d.deliverables, label],
+    }));
+
+  /**
+   * Changer la langue traduit les livrables cochés (fr ↔ en) au lieu de les
+   * décocher silencieusement.
+   */
+  const changeLanguage = (lang: Draft["language"]) =>
+    setDraft((d) => ({
+      ...d,
+      language: lang,
+      deliverables: d.deliverables.map((label) => {
+        const entry = LIVRABLES.find((l) => l.fr === label || l.en === label);
+        if (!entry) return label;
+        return lang === "French" ? entry.fr : entry.en;
+      }),
+    }));
   const slugChanged = !!project && draft.slug.trim() !== project.slug;
   const renderedTitle = (draft.meta_title || draft.name) + TITLE_SUFFIX;
   const locale = draft.language === "French" ? "fr" : "en";
@@ -116,10 +153,7 @@ export function PortfolioModal({
       const payload: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(draft)) {
         if (k === "deliverables") {
-          payload.deliverables = String(v)
-            .split("\n")
-            .map((s) => s.trim())
-            .filter(Boolean);
+          payload.deliverables = v;
           continue;
         }
         payload[k] = typeof v === "string" && !v.trim() ? null : v;
@@ -127,6 +161,11 @@ export function PortfolioModal({
       // language and status are NOT NULL in the schema.
       payload.language = draft.language;
       payload.status = draft.status;
+      // lead_id : envoyé seulement quand il change quelque chose, pour rester
+      // compatible tant que la colonne n'a pas été créée en base (migration
+      // scripts/sql/2026-08-29_archivage_lead_links.sql).
+      if (clientLead) payload.lead_id = clientLead.leadId;
+      else if (leadUnlinked && project?.lead_id) payload.lead_id = null;
 
       const res = await fetch(project ? `/api/portfolio/${project.id}` : "/api/portfolio", {
         method: project ? "PATCH" : "POST",
@@ -181,7 +220,7 @@ export function PortfolioModal({
               label="Langue"
               hint="Un même slug peut exister dans les deux langues : c'est le couple slug + langue qui identifie un projet."
             >
-              <select className={input} value={draft.language} onChange={(e) => set("language", e.target.value as Draft["language"])}>
+              <select className={input} value={draft.language} onChange={(e) => changeLanguage(e.target.value as Draft["language"])}>
                 <option value="French">Français</option>
                 <option value="English">Anglais</option>
               </select>
@@ -228,6 +267,25 @@ export function PortfolioModal({
             </p>
           )}
 
+          <Field
+            label="Client (lead)"
+            hint="Lead du CRM pour lequel ce projet a été réalisé — permet de retrouver les réalisations d'un client."
+          >
+            <LeadPicker
+              selected={clientLead}
+              onSelect={(l) => {
+                setClientLead(l);
+                setLeadUnlinked(false);
+              }}
+              onClear={() => {
+                setClientLead(null);
+                setLeadUnlinked(true);
+              }}
+              initialLeadId={project?.lead_id ?? null}
+              placeholder="Rechercher le client (nom, téléphone, ville…)"
+            />
+          </Field>
+
           <div className="grid sm:grid-cols-4 gap-4">
             <Field label="Ville">
               <input className={input} value={draft.city} onChange={(e) => set("city", e.target.value)} />
@@ -257,8 +315,35 @@ export function PortfolioModal({
             </Field>
           </div>
 
-          <Field label="Livrables" hint="Un par ligne.">
-            <textarea rows={5} className={input} value={draft.deliverables} onChange={(e) => set("deliverables", e.target.value)} placeholder={"Visite 3D\nPlan 2D\nPanoramas HDR"} />
+          <Field
+            label="Livrables"
+            hint="Liste partagée avec les options du devis : ce qui est vendu et ce qui est montré portent le même nom."
+          >
+            <div className="grid sm:grid-cols-2 gap-1.5">
+              {LIVRABLES.map((l) => {
+                const label = livrableLabel(l);
+                const checked = draft.deliverables.includes(label);
+                return (
+                  <label
+                    key={l.id}
+                    className={[
+                      "flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg border cursor-pointer transition-all",
+                      checked
+                        ? "bg-accent/10 border-accent text-text font-medium"
+                        : "bg-surface-subtle border-border text-text-muted hover:border-accent/40 hover:text-text",
+                    ].join(" ")}
+                  >
+                    <input
+                      type="checkbox"
+                      className="accent-current w-3 h-3"
+                      checked={checked}
+                      onChange={() => toggleLivrable(label)}
+                    />
+                    <span className="leading-tight">{label}</span>
+                  </label>
+                );
+              })}
+            </div>
           </Field>
 
           <div className="space-y-1">

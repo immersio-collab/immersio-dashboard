@@ -28,6 +28,10 @@ export interface PortfolioProjectRecord {
   meta_description: string | null;
   status: string;
   published_at: string | null;
+  /** Lead (client) pour lequel le projet a été réalisé — null si non lié. */
+  lead_id?: string | null;
+  /** Soft-delete : true = retiré du dashboard et du site, conservé en base. */
+  archived?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -82,16 +86,15 @@ export type PortfolioProjectUpdate = Partial<
   Omit<PortfolioProjectRecord, "id" | "created_at">
 >;
 
-/** Sector values used by the site's filters and labels. */
-export const PORTFOLIO_SECTORS = [
-  { value: "riads", label: "Riads" },
-  { value: "hotels", label: "Hôtels" },
-  { value: "showrooms", label: "Showrooms" },
-  { value: "musees", label: "Musées" },
-  { value: "sport", label: "Sport & Bien-être" },
-  { value: "immobilier", label: "Immobilier" },
-  { value: "evenementiel", label: "Événementiel" },
-  { value: "medical", label: "Médical" },
-] as const;
+import { SECTEURS } from "./vocabulaire";
 
-export type PortfolioSector = (typeof PORTFOLIO_SECTORS)[number]["value"];
+/**
+ * Sector values used by the site's filters and labels.
+ * Derived from the shared vocabulary — same slugs on immersio.ma's portfolio
+ * filters, the contact form and the tours module.
+ */
+export const PORTFOLIO_SECTORS: ReadonlyArray<{ value: string; label: string }> = SECTEURS.map(
+  (s) => ({ value: s.value, label: s.fr })
+);
+
+export type PortfolioSector = string;

@@ -40,7 +40,9 @@ export async function getTours(): Promise<Tour[]> {
     throw new ToursError(`Supabase error: ${error.message}`);
   }
 
-  return (data || []) as Tour[];
+  // Soft-delete : filtré en JS pour fonctionner avant comme après la
+  // migration SQL créant la colonne `archived`.
+  return ((data || []) as Tour[]).filter((t) => !t.archived);
 }
 
 /**
@@ -80,7 +82,8 @@ export async function getActiveTours(): Promise<Tour[]> {
     throw new ToursError(`Supabase error: ${error.message}`);
   }
 
-  return (data || []) as Tour[];
+  // Un tour archivé n'est jamais servi au site, même resté `active`.
+  return ((data || []) as Tour[]).filter((t) => !t.archived);
 }
 
 /**
@@ -104,7 +107,9 @@ export async function getTourBySlug(slug: string): Promise<Tour | null> {
     throw new ToursError(`Supabase error: ${error.message}`);
   }
 
-  return (data as Tour) ?? null;
+  const tour = (data as Tour) ?? null;
+  // Un tour archivé est un 404 public, même resté `active`.
+  return tour && !tour.archived ? tour : null;
 }
 
 /**
@@ -205,13 +210,14 @@ export async function updateTour(id: string, tourData: TourUpdate): Promise<Tour
 }
 
 /**
- * Delete a virtual tour.
+ * Archive un tour (soft-delete) : conservé en base, retiré du dashboard et
+ * du site. Décision du 29/08/2026 : « supprimer » = archiver.
  */
-export async function deleteTour(id: string): Promise<void> {
+export async function archiveTour(id: string): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase
     .from("tours")
-    .delete()
+    .update({ archived: true, updated_at: new Date().toISOString() } as any)
     .eq("id", id);
 
   if (error) {

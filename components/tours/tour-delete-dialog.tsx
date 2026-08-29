@@ -28,13 +28,13 @@ export function TourDeleteDialog({
             <AlertTriangle className="w-5 h-5 text-red-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-text text-base">Supprimer la visite virtuelle</h3>
-            <p className="text-xs text-text-muted mt-0.5">Cette action est irréversible.</p>
+            <h3 className="font-semibold text-text text-base">Archiver la visite virtuelle</h3>
+            <p className="text-xs text-text-muted mt-0.5">Conservée dans Supabase, retirée du dashboard et du site.</p>
           </div>
         </div>
 
         <p className="text-sm text-text-muted leading-relaxed">
-          Êtes-vous sûr de vouloir supprimer le tour{" "}
+          Êtes-vous sûr de vouloir archiver le tour{" "}
           <strong className="text-text font-medium">{tour.property_name}</strong> (slug:{" "}
           <code className="text-xs text-accent px-1.5 py-0.5 rounded bg-surface-subtle font-mono">
             {tour.slug}
@@ -60,10 +60,10 @@ export function TourDeleteDialog({
             {isDeleting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Suppression...</span>
+                <span>Archivage...</span>
               </>
             ) : (
-              <span>Supprimer définitivement</span>
+              <span>Archiver le tour</span>
             )}
           </button>
         </div>

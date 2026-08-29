@@ -26,6 +26,40 @@ interface ToursTableProps {
   initialTours: Tour[];
 }
 
+/**
+ * Ramène une valeur de secteur (donnée migrée, legacy ou saisie libre) au
+ * slug canonique du vocabulaire partagé. La base a été migrée le 29/08/2026 ;
+ * les alias restent pour d'éventuelles lignes créées avec l'ancien vocabulaire.
+ */
+function canonicalSector(sectorValue: string | null): string {
+  const raw = (sectorValue || "").trim().toLowerCase();
+  const ALIASES: Record<string, string> = {
+    // anciens slugs anglais du module Tours
+    clinic: "medical",
+    museum: "autre",
+    gym: "sport",
+    event: "evenementiel",
+    hotel: "hotels",
+    showroom: "showrooms",
+    restaurant: "autre",
+    // variantes de saisie libre
+    clinique: "medical",
+    sante: "medical",
+    "santé": "medical",
+    musee: "autre",
+    "musée": "autre",
+    galerie: "autre",
+    gallery: "autre",
+    fitness: "sport",
+    "salle de sport": "sport",
+    evenement: "evenementiel",
+    "événement": "evenementiel",
+    "événementiel": "evenementiel",
+    "hôtel": "hotels",
+  };
+  return ALIASES[raw] ?? raw;
+}
+
 export function ToursTable({ initialTours }: ToursTableProps) {
   const [tours, setTours] = useState<Tour[]>(initialTours);
   const [searchQuery, setSearchQuery] = useState("");
@@ -125,7 +159,7 @@ export function ToursTable({ initialTours }: ToursTableProps) {
       }
 
       setTours((prev) => prev.filter((t) => t.id !== tourToDelete.id));
-      showToast(`Tour "${tourToDelete.property_name}" supprimé.`);
+      showToast(`Tour "${tourToDelete.property_name}" archivé.`);
       setDeleteDialogOpen(false);
       setTourToDelete(null);
     } catch (err: any) {
@@ -165,16 +199,11 @@ export function ToursTable({ initialTours }: ToursTableProps) {
         }
       }
 
-      // Sector filter
+      // Sector filter — les valeurs canoniques viennent du vocabulaire
+      // partagé ; les alias couvrent d'éventuelles données non migrées.
       if (selectedSector !== "all") {
         const qSector = selectedSector.toLowerCase();
-        let tSector = (tour.sector || "").toLowerCase();
-        if (tSector === "clinique" || tSector === "sante" || tSector === "santé") tSector = "clinic";
-        if (tSector === "musee" || tSector === "musée" || tSector === "galerie" || tSector === "gallery") tSector = "museum";
-        if (tSector === "sport" || tSector === "fitness" || tSector === "salle de sport") tSector = "gym";
-        if (tSector === "evenement" || tSector === "événement" || tSector === "evenementiel" || tSector === "événementiel") tSector = "event";
-        if (tSector === "hotel" || tSector === "hôtel") tSector = "hotel";
-
+        const tSector = canonicalSector(tour.sector);
         if (tSector !== qSector) {
           return false;
         }
@@ -199,15 +228,7 @@ export function ToursTable({ initialTours }: ToursTableProps) {
       );
     }
 
-    const raw = sectorValue.trim().toLowerCase();
-    
-    // Normalize aliases from DB or user inputs
-    let key = raw;
-    if (raw === "clinique" || raw === "sante" || raw === "santé") key = "clinic";
-    if (raw === "musee" || raw === "musée" || raw === "galerie" || raw === "gallery") key = "museum";
-    if (raw === "sport" || raw === "fitness" || raw === "salle de sport") key = "gym";
-    if (raw === "evenement" || raw === "événement" || raw === "evenementiel" || raw === "événementiel") key = "event";
-    if (raw === "hotel" || raw === "hôtel") key = "hotel";
+    const key = canonicalSector(sectorValue);
 
     const match = TOUR_SECTORS.find((s) => s.value.toLowerCase() === key);
     const label = match ? match.label : sectorValue;

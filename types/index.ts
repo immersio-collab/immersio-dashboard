@@ -70,3 +70,18 @@ export {
 export { PORTFOLIO_SECTORS } from "./portfolio";
 export { TOUR_SECTORS } from "./tour";
 
+export type { Secteur, Superficie, Livrable } from "./vocabulaire";
+export {
+  SECTEURS,
+  SECTEUR_LABELS_FR,
+  VILLES,
+  SUPERFICIES,
+  LIVRABLES,
+  STATUT_OPTIONS,
+  CANAL_OPTIONS,
+  STATUS_STYLES,
+  findSecteurByLabel,
+  findSuperficieByLabel,
+  normalise,
+} from "./vocabulaire";
+

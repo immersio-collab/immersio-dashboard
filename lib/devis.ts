@@ -24,9 +24,24 @@ async function selectRows(filter: (q: any) => any): Promise<DevisRecord[]> {
   return (data || []) as DevisRecord[];
 }
 
-/** Every quotation, newest first. */
+/**
+ * Every non-archived quotation, newest first.
+ *
+ * Le filtre `archived` est appliqué en JS et non dans la requête : ainsi le
+ * code fonctionne aussi avant que la colonne n'existe en base (migration SQL
+ * scripts/sql/2026-08-29_archivage_lead_links.sql).
+ */
 export async function getAllDevis(): Promise<DevisRecord[]> {
-  return selectRows((q) => q.order("created_at", { ascending: false }));
+  const rows = await selectRows((q) => q.order("created_at", { ascending: false }));
+  return rows.filter((r) => !(r as { archived?: boolean }).archived);
+}
+
+/** Devis liés à un lead (non archivés), plus récents d'abord. */
+export async function getDevisByLead(leadId: string): Promise<DevisRecord[]> {
+  const rows = await selectRows((q) =>
+    q.eq("lead_id", leadId).order("created_at", { ascending: false })
+  );
+  return rows.filter((r) => !(r as { archived?: boolean }).archived);
 }
 
 export async function getDevisById(id: string): Promise<DevisRecord | null> {
@@ -68,9 +83,17 @@ export async function updateDevis(id: string, input: DevisUpdate): Promise<Devis
   return data as DevisRecord;
 }
 
-export async function deleteDevis(id: string): Promise<void> {
+/**
+ * Archive un devis (soft-delete) : la ligne et son PDF restent en base, le
+ * dashboard ne l'affiche plus. Décision du 29/08/2026 : « supprimer »
+ * signifie archiver, partout.
+ */
+export async function archiveDevis(id: string): Promise<void> {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("devis").delete().eq("id", id);
+  const { error } = await supabase
+    .from("devis")
+    .update({ archived: true, updated_at: new Date().toISOString() } as any)
+    .eq("id", id);
   if (error) throw new DevisError(`Supabase error: ${error.message}`);
 }
 

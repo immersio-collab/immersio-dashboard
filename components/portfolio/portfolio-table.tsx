@@ -85,7 +85,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
       const res = await fetch(`/api/portfolio/${toDelete.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
       setProjects((list) => list.filter((p) => p.id !== toDelete.id));
-      notify(`« ${toDelete.name} » supprimé`);
+      notify(`« ${toDelete.name} » archivé`);
       setToDelete(null);
     } catch (e) {
       notify(e instanceof Error ? e.message : "Suppression impossible");
@@ -260,7 +260,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
                         type="button"
                         onClick={() => setToDelete(p)}
                         className="p-1.5 rounded text-text-muted hover:text-red-600 hover:bg-surface-muted transition-colors"
-                        title="Supprimer"
+                        title="Archiver (conservé dans Supabase)"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
