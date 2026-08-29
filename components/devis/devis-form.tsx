@@ -37,7 +37,7 @@ import {
  * d'abord par libellé exact (le formulaire du site envoie les libellés du
  * vocabulaire), sinon en interprétant une valeur numérique libre ("120").
  */
-function trancheFromLeadSurface(surface: string | undefined) {
+function trancheFromLeadSurface(surface: string | null | undefined) {
   if (!surface?.trim()) return undefined;
   const byLabel = findSuperficieByLabel(surface);
   if (byLabel) return byLabel;

@@ -80,6 +80,16 @@ export type LeadDoublon = "⚠ Doublon" | "";
  *   Relance 2 (auto) | Relance 3 (auto) | Notes | Archivé
  */
 export interface Lead {
+  /**
+   * NOTE — les colonnes optionnelles sont typées `| null`.
+   *
+   * Elles étaient déclarées `string` alors que Supabase renvoie null pour
+   * toute cellule vide. Le compilateur laissait donc passer
+   * `l.ville.toLowerCase()`, qui a fait tomber la table des leads derrière la
+   * barrière d'erreur dès la première lettre tapée dans la recherche. Le type
+   * dit maintenant la vérité : tout accès doit être gardé.
+   */
+
   /** Identifiant unique généré côté Apps Script (ex: "L-001"). */
   leadId: string;
 
@@ -87,22 +97,22 @@ export interface Lead {
   nom: string;
 
   /** Numéro de téléphone (format libre, peut inclure l'indicatif). */
-  telephone: string;
+  telephone: string | null;
 
   /** Adresse email (optionnel). */
   email?: string;
 
   /** Canal d'acquisition. */
-  canal: LeadCanal;
+  canal: LeadCanal | null;
 
   /** Ville du prospect. */
-  ville: string;
+  ville: string | null;
 
   /** Type de bien concerné par la visite virtuelle. */
-  typeDeBien: LeadTypeBien;
+  typeDeBien: LeadTypeBien | null;
 
   /** Surface en m² (stockée comme chaîne pour préserver le format du sheet). */
-  surface: string;
+  surface: string | null;
 
   /**
    * Date de soumission du formulaire (ISO string).
@@ -114,22 +124,22 @@ export interface Lead {
    * Indicateur de doublon.
    * "⚠ Doublon" = doublon détecté et non résolu.
    */
-  doublon: LeadDoublon;
+  doublon: LeadDoublon | null;
 
   /** Date du premier contact effectif (vide si jamais contacté). */
-  date1erContact: string;
+  date1erContact: string | null;
 
   /** "Oui" | "Non" | "" — appel téléphonique passé. */
-  appelTelephonique: string;
+  appelTelephonique: string | null;
 
   /** Statut commercial courant. */
-  statut: LeadStatut;
+  statut: LeadStatut | null;
 
   /** "Oui" | "Non" | "" — contact via WhatsApp. */
-  contacteSurWhatsapp: string;
+  contacteSurWhatsapp: string | null;
 
   /** "Oui" | "Non" | "" — devis envoyé. */
-  devisEnvoye: string;
+  devisEnvoye: string | null;
 
   /** URL du devis PDF stocké sur Supabase Storage. */
   devisUrl?: string;
@@ -143,28 +153,28 @@ export interface Lead {
   devisDerive?: boolean;
 
   /** "Oui" | "Non" | "" — démo/visite virtuelle envoyée. */
-  demoEnvoye: string;
+  demoEnvoye: string | null;
 
   /**
    * Prix proposé en MAD.
    * Stocké comme chaîne (peut contenir des séparateurs de milliers).
    */
-  prixProposeMAD: string;
+  prixProposeMAD: string | null;
 
   /** Date du dernier échange (ISO string, vide si aucun). */
-  dateDeEchange: string;
+  dateDeEchange: string | null;
 
   /**
    * Date de la 1ère relance automatique (ISO string).
    * Calculée côté Apps Script selon la date formulaire.
    */
-  relance1Auto: string;
+  relance1Auto: string | null;
 
   /** Date de la 2e relance automatique. */
-  relance2Auto: string;
+  relance2Auto: string | null;
 
   /** Date de la 3e relance automatique. */
-  relance3Auto: string;
+  relance3Auto: string | null;
 
   /** Indique si la 1ère relance a été effectuée. */
   relance1Fait: boolean;
@@ -176,7 +186,7 @@ export interface Lead {
   relance3Fait: boolean;
 
   /** Notes libres saisies par l'agent. */
-  notes: string;
+  notes: string | null;
 
   /** Date et heure planifiée d'un rendez-vous, livraison ou rappel (ISO string). */
   rappelDate?: string | null;

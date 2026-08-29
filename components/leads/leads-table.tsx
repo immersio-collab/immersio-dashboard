@@ -170,7 +170,7 @@ function AlertBadges({ lead, alerts }: { lead: Lead; alerts: LeadAlert[] }) {
             <RelanceVariationsModal
               key={a.kind}
               relanceType={relanceType}
-              phoneNumber={lead.telephone}
+              phoneNumber={lead.telephone ?? ""}
               customTrigger={
                 <span
                   title={a.message || title}
@@ -367,7 +367,7 @@ export function LeadsTable({
 
       // Statut filter
       if (filterStatuts.length > 0) {
-        result = result.filter((l) => filterStatuts.includes(l.statut));
+        result = result.filter((l) => !!l.statut && filterStatuts.includes(l.statut));
       } else {
         // Masquer les leads "Perdu" par défaut (sauf s'ils sont explicitement demandés via le filtre)
         result = result.filter((l) => l.statut !== "Perdu");
@@ -402,15 +402,16 @@ export function LeadsTable({
       }
     }
 
-    // Text search: nom, téléphone, ville, rappelNote
+    // Text search: nom, téléphone, ville, rappelNote.
+    // Chaque champ est traité comme potentiellement absent : une colonne vide
+    // revient en null depuis Supabase, et un seul accès non gardé fait tomber
+    // la table entière derrière la barrière d'erreur.
     const q = search.trim().toLowerCase();
     if (q) {
+      const match = (value: string | null | undefined) =>
+        !!value && value.toLowerCase().includes(q);
       result = result.filter(
-        (l) =>
-          l.nom.toLowerCase().includes(q) ||
-          l.telephone.includes(q) ||
-          l.ville.toLowerCase().includes(q) ||
-          (l.rappelNote && l.rappelNote.toLowerCase().includes(q))
+        (l) => match(l.nom) || match(l.telephone) || match(l.ville) || match(l.rappelNote)
       );
     }
 
@@ -1155,7 +1156,7 @@ export function LeadsTable({
                             {lead.statut === "Nouveau" && (
                               <RelanceVariationsModal
                                 relanceType="nouveau"
-                                phoneNumber={lead.telephone}
+                                phoneNumber={lead.telephone ?? ""}
                                 customTrigger={
                                   <span
                                     title="Premier contact"

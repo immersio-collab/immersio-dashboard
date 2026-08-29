@@ -195,7 +195,7 @@ export default async function DashboardIndexPage() {
     const pa = Math.min(...a.alerts.map((al) => ALERT_PRIORITY[al.kind]));
     const pb = Math.min(...b.alerts.map((al) => ALERT_PRIORITY[al.kind]));
     if (pa !== pb) return pa - pb;
-    return a.lead.nom.localeCompare(b.lead.nom, "fr");
+    return (a.lead.nom ?? "").localeCompare(b.lead.nom ?? "", "fr");
   });
 
   // ── Render ─────────────────────────────────────────────────────────────────

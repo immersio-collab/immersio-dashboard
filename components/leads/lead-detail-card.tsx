@@ -134,7 +134,7 @@ function ToggleSwitch({
   );
 }
 
-function fmtDateForInput(iso: string): string {
+function fmtDateForInput(iso: string | null | undefined): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
@@ -608,7 +608,7 @@ export function LeadDetailCard({
               <input
                 id="d-telephone"
                 type="tel"
-                value={formData.telephone}
+                value={formData.telephone ?? ""}
                 onChange={(e) => handleChange("telephone", e.target.value)}
                 className="input-base text-sm w-full h-8"
                 placeholder="Ex: +212 600 000 000"
@@ -630,7 +630,7 @@ export function LeadDetailCard({
               <div className="flex flex-col gap-2 w-full">
                 <select
                   id="d-canal"
-                  value={isCustomCanal ? "Autre" : formData.canal}
+                  value={isCustomCanal ? "Autre" : formData.canal ?? ""}
                   onChange={(e) => {
                     if (e.target.value === "Autre") {
                       setIsCustomCanal(true);
@@ -652,7 +652,7 @@ export function LeadDetailCard({
                 {isCustomCanal && (
                   <input
                     type="text"
-                    value={formData.canal}
+                    value={formData.canal ?? ""}
                     onChange={(e) => handleChange("canal", e.target.value)}
                     className="input-base text-sm w-full h-8"
                     placeholder="Saisissez le canal..."
@@ -666,7 +666,7 @@ export function LeadDetailCard({
               <div className="flex flex-col gap-2 w-full">
                 <select
                   id="d-ville"
-                  value={isCustomVille ? "Autre" : formData.ville}
+                  value={isCustomVille ? "Autre" : formData.ville ?? ""}
                   onChange={(e) => {
                     if (e.target.value === "Autre") {
                       setIsCustomVille(true);
@@ -689,7 +689,7 @@ export function LeadDetailCard({
                 {isCustomVille && (
                   <input
                     type="text"
-                    value={formData.ville}
+                    value={formData.ville ?? ""}
                     onChange={(e) => handleChange("ville", e.target.value)}
                     className="input-base text-sm w-full h-8"
                     placeholder="Saisissez la ville..."
@@ -703,7 +703,7 @@ export function LeadDetailCard({
               <div className="flex flex-col gap-2 w-full">
                 <select
                   id="d-typeDeBien"
-                  value={isCustomTypeBien ? "Autre" : formData.typeDeBien}
+                  value={isCustomTypeBien ? "Autre" : formData.typeDeBien ?? ""}
                   onChange={(e) => {
                     if (e.target.value === "Autre") {
                       setIsCustomTypeBien(true);
@@ -726,7 +726,7 @@ export function LeadDetailCard({
                 {isCustomTypeBien && (
                   <input
                     type="text"
-                    value={formData.typeDeBien}
+                    value={formData.typeDeBien ?? ""}
                     onChange={(e) => handleChange("typeDeBien", e.target.value)}
                     className="input-base text-sm w-full h-8"
                     placeholder="Saisissez le type de bien..."
@@ -740,7 +740,7 @@ export function LeadDetailCard({
               <input
                 id="d-surface"
                 type="text"
-                value={formData.surface}
+                value={formData.surface ?? ""}
                 onChange={(e) => handleChange("surface", e.target.value)}
                 className="input-base text-sm w-full h-8"
                 placeholder="Ex: 120"
@@ -773,7 +773,7 @@ export function LeadDetailCard({
             <FieldRow label="Statut" id="d-statut">
               <select
                 id="d-statut"
-                value={formData.statut}
+                value={formData.statut ?? ""}
                 onChange={(e) => handleChange("statut", e.target.value)}
                 className="input-base text-sm w-full h-8"
               >
@@ -1001,7 +1001,7 @@ export function LeadDetailCard({
                     ? "Montant du devis lié — modifiable depuis le module Devis."
                     : undefined
                 }
-                value={formData.prixProposeMAD}
+                value={formData.prixProposeMAD ?? ""}
                 onChange={(e) =>
                   handleChange("prixProposeMAD", e.target.value)
                 }
@@ -1051,7 +1051,7 @@ export function LeadDetailCard({
                       <div className="flex items-center gap-1.5">
                         <RelanceVariationsModal
                           relanceType={`relance${num}` as "relance1" | "relance2" | "relance3"}
-                          phoneNumber={formData.telephone}
+                          phoneNumber={formData.telephone ?? ""}
                         />
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input

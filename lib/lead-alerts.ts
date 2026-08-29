@@ -27,7 +27,7 @@ export const NEVER_CONTACTED_THRESHOLD_MS = 48 * 60 * 60 * 1000;
 // ---------------------------------------------------------------------------
 
 /** Parses a sheet date string. Returns null when empty or unparseable. */
-export function parseSheetDate(value: string): Date | null {
+export function parseSheetDate(value: string | null | undefined): Date | null {
   if (!value || value.trim() === "") return null;
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d;
@@ -131,8 +131,8 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
 
   const isStatutAdvanced =
     Boolean(lead.statut) &&
-    lead.statut.toLowerCase() !== "nouveau" &&
-    lead.statut.toLowerCase() !== "en pause";
+    (lead.statut ?? "").toLowerCase() !== "nouveau" &&
+    (lead.statut ?? "").toLowerCase() !== "en pause";
 
   const hasRecordedContact =
     contact1 !== null ||
@@ -153,7 +153,7 @@ export function getLeadAlerts(lead: Lead): LeadAlert[] {
   if (hasRecordedContact && !isInactiveStatus) {
     const relanceDates: Array<{
       label: string;
-      value: string;
+      value: string | null;
       fait?: boolean;
     }> = [
       { label: "Relance 1", value: lead.relance1Auto, fait: Boolean(lead.relance1Fait) },
