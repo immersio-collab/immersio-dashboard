@@ -26,7 +26,7 @@ import type { CsvColumn } from "@/lib/csv";
 import { pairByTopic, primary, languagesOf, type Pair } from "@/lib/pairing";
 import { getPublicationState, PUBLICATION_LABELS, PUBLICATION_STYLES } from "@/lib/publication";
 
-type PfSortKey = "name" | "langues" | "sector" | "city" | "published_at" | "status";
+type PfSortKey = "name" | "sector" | "city" | "published_at" | "status";
 type PfPair = Pair<PortfolioProjectRecord>;
 
 /** L'export reste à la ligne : une entrée par langue, comme en base. */
@@ -113,7 +113,6 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
     visible,
     {
       name: (p) => primary(p).name,
-      langues: (p) => languagesOf(p).join(""),
       sector: (p) => primary(p).sector,
       city: (p) => primary(p).city,
       published_at: (p) => primary(p).published_at,
@@ -256,7 +255,6 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
           <thead className="sticky top-0 bg-surface-subtle border-b border-border">
             <tr className="text-left text-text-muted">
               <SortHeader label="Projet" sortKey="name" sort={sort} onToggle={toggle} />
-              <SortHeader label="Langues" sortKey="langues" sort={sort} onToggle={toggle} />
               <SortHeader label="Secteur" sortKey="sector" sort={sort} onToggle={toggle} />
               <SortHeader label="Ville" sortKey="city" sort={sort} onToggle={toggle} />
               <SortHeader label="Publié le" sortKey="published_at" sort={sort} onToggle={toggle} />
@@ -267,7 +265,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
           <tbody>
             {pager.slice.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-text-subtle">
+                <td colSpan={6} className="px-3 py-8 text-center text-text-subtle">
                   Aucun projet ne correspond.
                 </td>
               </tr>
@@ -291,31 +289,22 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
                       onOpen={viewer.open}
                       className="font-medium text-text block truncate w-full"
                     />
-                    {/* Le slug de chaque langue : ils diffèrent souvent. */}
+                    {/* Le slug de chaque langue : ils diffèrent souvent, et
+                        leur présence dit déjà quelles langues existent. */}
                     <div className="text-text-subtle font-mono text-[11px] truncate">
                       {pair.fr && <span title="Slug français">/{pair.fr.slug}</span>}
                       {pair.fr && pair.en && <span className="mx-1 opacity-50">·</span>}
                       {pair.en && <span title="Slug anglais">/{pair.en.slug}</span>}
                     </div>
-                  </td>
-
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1">
-                      {langs.map((l) => (
-                        <span
-                          key={l}
-                          className="px-1.5 py-0.5 rounded border border-border bg-surface-subtle text-[10px] font-medium text-text-muted"
-                        >
-                          {l}
-                        </span>
-                      ))}
-                      {langs.length === 1 && (
-                        <Link2Off
-                          className="w-3 h-3 text-amber-500 ml-0.5"
-                          aria-label="Sans traduction — pas de hreflang"
-                        />
-                      )}
-                    </span>
+                    {langs.length === 1 && (
+                      <span
+                        className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-[10px] font-medium text-amber-700"
+                        title="Sans traduction : la page ne déclare aucun équivalent dans l'autre langue (pas de hreflang)."
+                      >
+                        <Link2Off className="w-2.5 h-2.5" />
+                        {langs[0] === "FR" ? "Français seul" : "Anglais seul"}
+                      </span>
+                    )}
                   </td>
 
                   <td className="px-3 py-2 whitespace-nowrap text-text-muted">

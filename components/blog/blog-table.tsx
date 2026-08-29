@@ -17,7 +17,7 @@ import type { CsvColumn } from "@/lib/csv";
 import { pairByTopic, primary, languagesOf, type Pair } from "@/lib/pairing";
 import { getPublicationState, PUBLICATION_LABELS, PUBLICATION_STYLES } from "@/lib/publication";
 
-type BlogSortKey = "name" | "langues" | "category_label" | "published_date" | "updated_at" | "status";
+type BlogSortKey = "name" | "category_label" | "published_date" | "updated_at" | "status";
 type BlogPair = Pair<BlogPostRecord>;
 
 /** L'export reste à la ligne : une entrée par langue, comme en base. */
@@ -86,7 +86,6 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
     visible,
     {
       name: (p) => primary(p).name,
-      langues: (p) => languagesOf(p).join(""),
       category_label: (p) => primary(p).category_label,
       published_date: (p) => primary(p).published_date,
       updated_at: (p) => primary(p).updated_at,
@@ -224,7 +223,6 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
           <thead className="sticky top-0 bg-surface-subtle border-b border-border">
             <tr className="text-left text-text-muted">
               <SortHeader label="Article" sortKey="name" sort={sort} onToggle={toggle} />
-              <SortHeader label="Langues" sortKey="langues" sort={sort} onToggle={toggle} />
               <SortHeader label="Catégorie" sortKey="category_label" sort={sort} onToggle={toggle} />
               <SortHeader label="Publié le" sortKey="published_date" sort={sort} onToggle={toggle} />
               <SortHeader label="Modifié le" sortKey="updated_at" sort={sort} onToggle={toggle} />
@@ -235,7 +233,7 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
           <tbody>
             {pager.slice.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-text-subtle">
+                <td colSpan={6} className="px-3 py-8 text-center text-text-subtle">
                   Aucun article ne correspond.
                 </td>
               </tr>
@@ -263,25 +261,15 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
                       {pair.fr && pair.en && <span className="mx-1 opacity-50">·</span>}
                       {pair.en && <span title="Slug anglais">/{pair.en.slug}</span>}
                     </div>
-                  </td>
-
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1">
-                      {langs.map((l) => (
-                        <span
-                          key={l}
-                          className="px-1.5 py-0.5 rounded border border-border bg-surface-subtle text-[10px] font-medium text-text-muted"
-                        >
-                          {l}
-                        </span>
-                      ))}
-                      {langs.length === 1 && (
-                        <Link2Off
-                          className="w-3 h-3 text-amber-500 ml-0.5"
-                          aria-label="Sans traduction — pas de hreflang"
-                        />
-                      )}
-                    </span>
+                    {langs.length === 1 && (
+                      <span
+                        className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-[10px] font-medium text-amber-700"
+                        title="Sans traduction : la page ne déclare aucun équivalent dans l'autre langue (pas de hreflang)."
+                      >
+                        <Link2Off className="w-2.5 h-2.5" />
+                        {langs[0] === "FR" ? "Français seul" : "Anglais seul"}
+                      </span>
+                    )}
                   </td>
 
                   <td className="px-3 py-2 whitespace-nowrap text-text-muted">
