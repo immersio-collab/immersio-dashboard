@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, Save, X, Loader2 } from "lucide-react";
+import { Download, Save, X, Loader2, Pencil, Eye } from "lucide-react";
 import { LeadPicker } from "@/components/lead-picker";
 import { devisDataFromRecord } from "@/lib/devis-record";
 import {
@@ -112,6 +112,7 @@ export function DevisForm({
   onClose,
   initialLeadId,
   devis,
+  readOnly = false,
 }: {
   onSaved: (d: DevisRecord) => void;
   onClose: () => void;
@@ -119,8 +120,12 @@ export function DevisForm({
   initialLeadId?: string | null;
   /** Devis à modifier. Absent = création. */
   devis?: DevisRecord | null;
+  /** Ouvre en consultation : tout est visible, rien n'est modifiable. */
+  readOnly?: boolean;
 }) {
   const isEdit = !!devis;
+  // Le mode est un état : « Modifier » bascule la fiche ouverte.
+  const [editable, setEditable] = useState(!readOnly);
   const [data, setData] = useState<DevisData>(() =>
     devis ? devisDataFromRecord(devis) : emptyDevis()
   );
@@ -340,8 +345,11 @@ export function DevisForm({
         {/* ── Formulaire ── */}
         <div className="w-[46%] min-w-[360px] flex flex-col border-r border-border">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
-            <h2 className="text-sm font-semibold text-text">
-              {isEdit ? `Modifier le devis ${devis!.devis_number}` : "Nouveau devis"}
+            <h2 className="text-sm font-semibold text-text flex items-center gap-2">
+              {!editable && <Eye className="w-3.5 h-3.5 text-text-muted" />}
+              {isEdit
+                ? `${editable ? "Modifier le devis" : "Devis"} ${devis!.devis_number}`
+                : "Nouveau devis"}
             </h2>
             <button onClick={onClose} className="p-1 rounded text-text-muted hover:text-text hover:bg-surface-muted" aria-label="Fermer">
               <X className="w-4 h-4" />
@@ -352,6 +360,10 @@ export function DevisForm({
             {error && (
               <div className="px-3 py-2 text-xs rounded-lg bg-red-50 border border-red-200 text-red-700">{error}</div>
             )}
+
+            {/* `contents` retire le fieldset de la mise en page : il ne sert
+                qu'à neutraliser les contrôles, pas à les encadrer. */}
+            <fieldset disabled={!editable} className="contents">
 
             <Section title="Client">
               <LeadPicker
@@ -510,6 +522,8 @@ export function DevisForm({
               </Field>
             </Section>
 
+            </fieldset>
+
             {/* Totaux */}
             <div className="rounded-xl border border-border bg-surface-subtle p-4 space-y-1.5">
               <div className="flex justify-between text-xs text-text-muted">
@@ -537,14 +551,24 @@ export function DevisForm({
               <Download className="w-3.5 h-3.5" />
               Télécharger le PDF
             </button>
-            <button
-              onClick={save}
-              disabled={saving || !data.clientNom.trim()}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover disabled:opacity-50 transition-colors"
-            >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              {saving ? "Enregistrement…" : isEdit ? "Enregistrer les modifications" : "Enregistrer le devis"}
-            </button>
+            {editable ? (
+              <button
+                onClick={save}
+                disabled={saving || !data.clientNom.trim()}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover disabled:opacity-50 transition-colors"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                {saving ? "Enregistrement…" : isEdit ? "Enregistrer les modifications" : "Enregistrer le devis"}
+              </button>
+            ) : (
+              <button
+                onClick={() => setEditable(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Modifier
+              </button>
+            )}
           </div>
         </div>
 

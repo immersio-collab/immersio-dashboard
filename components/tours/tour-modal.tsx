@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Globe, Sparkles, Loader2, ExternalLink, Code2, Eye, EyeOff } from "lucide-react";
+import { X, Globe, Sparkles, Loader2, ExternalLink, Code2, Eye, EyeOff, Pencil } from "lucide-react";
 import { TOUR_SECTORS, type Tour, type TourInsert, type TourUpdate } from "@/types";
 
 interface TourModalProps {
   isOpen: boolean;
   tourToEdit?: Tour | null;
+  /** Ouvre en consultation : tout est visible, rien n'est modifiable. */
+  readOnly?: boolean;
   onClose: () => void;
   onSuccess: (tour: Tour, isNew: boolean) => void;
 }
@@ -23,10 +25,13 @@ function slugify(text: string): string {
 export function TourModal({
   isOpen,
   tourToEdit,
+  readOnly = false,
   onClose,
   onSuccess,
 }: TourModalProps) {
   const isEdit = Boolean(tourToEdit);
+  // Le mode est un état : « Modifier » bascule la fiche ouverte.
+  const [editable, setEditable] = useState(!readOnly);
 
   const [propertyName, setPropertyName] = useState("");
   const [slug, setSlug] = useState("");
@@ -43,6 +48,7 @@ export function TourModal({
   // Sync state with tourToEdit or defaults when opened
   useEffect(() => {
     if (isOpen) {
+      setEditable(!readOnly);
       if (tourToEdit) {
         setPropertyName(tourToEdit.property_name || "");
         setSlug(tourToEdit.slug || "");
@@ -194,6 +200,9 @@ export function TourModal({
 
         {/* Content / Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* `contents` retire le fieldset de la mise en page : il ne sert
+              qu'à neutraliser les contrôles, pas à les encadrer. */}
+          <fieldset disabled={!editable} className="contents">
           {errorMsg && (
             <div className="p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-2">
               <span className="font-medium flex-1">{errorMsg}</span>
@@ -346,7 +355,13 @@ export function TourModal({
             </label>
           </div>
 
-          {/* Live Preview Collapsible */}
+          </fieldset>
+
+          {/* Live Preview Collapsible —
+              hors fieldset : afficher la visite est une consultation, pas une
+              saisie. Un `disabled={false}` n'aurait rien changé : un contrôle
+              est désactivé s'il porte l'attribut OU s'il descend d'un fieldset
+              désactivé. */}
           {previewSrc && (
             <div className="border border-border rounded-lg overflow-hidden">
               <button
@@ -384,22 +399,33 @@ export function TourModal({
               disabled={isSubmitting}
               className="px-4 py-2 text-sm font-medium rounded-lg text-text-muted hover:text-text hover:bg-surface-muted transition-colors disabled:opacity-50"
             >
-              Annuler
+              {editable ? "Annuler" : "Fermer"}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 text-sm font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Enregistrement...</span>
-                </>
-              ) : (
-                <span>{isEdit ? "Enregistrer les modifications" : "Créer le tour"}</span>
-              )}
-            </button>
+            {editable ? (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-5 py-2 text-sm font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Enregistrement...</span>
+                  </>
+                ) : (
+                  <span>{isEdit ? "Enregistrer les modifications" : "Créer le tour"}</span>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditable(true)}
+                className="px-5 py-2 text-sm font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <Pencil className="w-4 h-4" />
+                <span>Modifier</span>
+              </button>
+            )}
           </div>
         </form>
       </div>

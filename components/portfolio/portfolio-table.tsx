@@ -68,6 +68,8 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
   const [statut, setStatut] = useState<"all" | "publie" | "programme" | "brouillon">("all");
 
   const [modalOpen, setModalOpen] = useState(false);
+  // Un clic sur la ligne consulte ; le crayon modifie.
+  const [modalReadOnly, setModalReadOnly] = useState(false);
   const [editing, setEditing] = useState<PfPair | null>(null);
   const [toDelete, setToDelete] = useState<PfPair | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -212,6 +214,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
           type="button"
           onClick={() => {
             setEditing(null);
+            setModalReadOnly(false);
             setModalOpen(true);
           }}
           className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-all shadow-sm active:scale-[0.98]"
@@ -279,6 +282,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
                   key={pair.key}
                   onClick={onRowClick(() => {
                     setEditing(pair);
+                    setModalReadOnly(true);
                     setModalOpen(true);
                   })}
                   title="Ouvrir la fiche du projet"
@@ -353,6 +357,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
                         type="button"
                         onClick={() => {
                           setEditing(pair);
+                          setModalReadOnly(false);
                           setModalOpen(true);
                         }}
                         className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-surface-muted transition-colors"
@@ -388,6 +393,7 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
 
       <PortfolioModal
         pair={editing}
+        readOnly={modalReadOnly}
         allProjects={projects}
         open={modalOpen}
         onClose={() => setModalOpen(false)}

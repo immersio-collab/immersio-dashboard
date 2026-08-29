@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { X, AlertTriangle, ExternalLink, Link2Off, Plus, Check } from "lucide-react";
+import { X, AlertTriangle, ExternalLink, Link2Off, Plus, Check, Pencil, Eye } from "lucide-react";
 import type { PortfolioProjectRecord, Lead } from "@/types";
 import { PORTFOLIO_SECTORS, LIVRABLES } from "@/types";
 import { LeadPicker } from "@/components/lead-picker";
@@ -130,6 +130,7 @@ export function PortfolioModal({
   pair,
   allProjects,
   open,
+  readOnly = false,
   onClose,
   onSaved,
 }: {
@@ -138,9 +139,14 @@ export function PortfolioModal({
   /** Tous les projets, pour vérifier qu'un slug n'est pas déjà pris. */
   allProjects: PortfolioProjectRecord[];
   open: boolean;
+  /** Ouvre en consultation : tout est visible, rien n'est modifiable. */
+  readOnly?: boolean;
   onClose: () => void;
   onSaved: (saved: PortfolioProjectRecord[]) => void;
 }) {
+  // Le mode est un état, pas seulement une prop : « Modifier » bascule la
+  // fiche ouverte au lieu d'obliger à la refermer et à viser le crayon.
+  const [editable, setEditable] = useState(!readOnly);
   const [shared, setShared] = useState<Shared>(emptyShared);
   const [sides, setSides] = useState<Record<Lang, Side | null>>({ French: null, English: null });
   const [tab, setTab] = useState<Lang>("French");
@@ -167,8 +173,9 @@ export function PortfolioModal({
     }
     setClientLead(null);
     setLeadUnlinked(false);
+    setEditable(!readOnly);
     setError(null);
-  }, [open, pair]);
+  }, [open, pair, readOnly]);
 
   const initialLeadId = pair ? ((pair.fr ?? pair.en)?.lead_id ?? null) : null;
 
@@ -290,8 +297,11 @@ export function PortfolioModal({
         {/* ── En-tête ── */}
         <div className="sticky top-0 z-10 px-5 py-4 border-b border-border bg-surface rounded-t-xl">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-text">
-              {pair ? `Modifier « ${(pair.fr ?? pair.en)!.name} »` : "Nouveau projet"}
+            <h2 className="text-sm font-semibold text-text flex items-center gap-2">
+              {!editable && <Eye className="w-3.5 h-3.5 text-text-muted" />}
+              {pair
+                ? `${editable ? "Modifier" : "Projet"} « ${(pair.fr ?? pair.en)!.name} »`
+                : "Nouveau projet"}
             </h2>
             <button
               onClick={onClose}
@@ -309,6 +319,10 @@ export function PortfolioModal({
               {error}
             </div>
           )}
+
+          {/* `contents` retire le fieldset de la mise en page : il ne sert
+              qu'à neutraliser les contrôles, pas à les encadrer. */}
+          <fieldset disabled={!editable} className="contents">
 
           {/* ── Informations du bien : communes aux deux langues ── */}
           <section className="space-y-4">
@@ -395,7 +409,11 @@ export function PortfolioModal({
             </Field>
           </section>
 
-          {/* ── Onglets de langue ── */}
+          </fieldset>
+
+          {/* ── Onglets de langue ──
+              Hors fieldset : changer d'onglet est une navigation, pas une
+              saisie. En consultation on doit pouvoir lire les deux langues. */}
           <section className="space-y-3">
             <div className="flex items-center gap-1 border-b border-border">
               {(["French", "English"] as Lang[]).map((lang) => {
@@ -407,8 +425,13 @@ export function PortfolioModal({
                       key={lang}
                       type="button"
                       onClick={() => addLanguage(lang)}
-                      className="px-3 py-2 text-xs font-medium text-text-subtle hover:text-accent transition-colors inline-flex items-center gap-1.5"
-                      title={`Créer la version ${label.toLowerCase()}`}
+                      disabled={!editable}
+                      className="px-3 py-2 text-xs font-medium text-text-subtle hover:text-accent transition-colors inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={
+                        editable
+                          ? `Créer la version ${label.toLowerCase()}`
+                          : `Version ${label.toLowerCase()} inexistante`
+                      }
                     >
                       <Plus className="w-3 h-3" />
                       {label}
@@ -441,6 +464,7 @@ export function PortfolioModal({
             </div>
 
             {current && (
+              <fieldset disabled={!editable} className="contents">
               <div className="space-y-4">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Field label="Nom du projet">
@@ -549,27 +573,40 @@ export function PortfolioModal({
                   />
                 </Field>
               </div>
+              </fieldset>
             )}
           </section>
         </div>
 
         <div className="sticky bottom-0 flex items-center justify-between gap-2 px-5 py-4 border-t border-border bg-surface rounded-b-xl">
           <span className="text-[11px] text-text-subtle">
-            {(Object.keys(sides) as Lang[]).filter((l) => sides[l]).length === 2
-              ? "Les deux langues seront enregistrées."
-              : "Une seule langue sera enregistrée."}
+            {!editable
+              ? "Consultation — aucune modification possible."
+              : (Object.keys(sides) as Lang[]).filter((l) => sides[l]).length === 2
+                ? "Les deux langues seront enregistrées."
+                : "Une seule langue sera enregistrée."}
           </span>
           <div className="flex gap-2">
             <button onClick={onClose} disabled={saving} className="px-3.5 py-1.5 text-xs font-medium rounded-lg border border-border text-text-muted hover:text-text hover:bg-surface-muted disabled:opacity-50">
-              Annuler
+              {editable ? "Annuler" : "Fermer"}
             </button>
-            <button
-              onClick={save}
-              disabled={!canSave}
-              className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
-            >
-              {saving ? "Enregistrement…" : pair ? "Enregistrer" : "Créer"}
-            </button>
+            {editable ? (
+              <button
+                onClick={save}
+                disabled={!canSave}
+                className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+              >
+                {saving ? "Enregistrement…" : pair ? "Enregistrer" : "Créer"}
+              </button>
+            ) : (
+              <button
+                onClick={() => setEditable(true)}
+                className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover flex items-center gap-1.5"
+              >
+                <Pencil className="w-3 h-3" />
+                Modifier
+              </button>
+            )}
           </div>
         </div>
       </div>

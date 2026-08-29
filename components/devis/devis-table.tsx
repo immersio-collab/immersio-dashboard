@@ -62,6 +62,8 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
   const [statut, setStatut] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const [toEdit, setToEdit] = useState<DevisRecord | null>(null);
+  // Un clic sur la ligne consulte ; le crayon modifie.
+  const [modalReadOnly, setModalReadOnly] = useState(false);
   const [toArchive, setToArchive] = useState<DevisRecord | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -218,6 +220,7 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
           type="button"
           onClick={() => {
             setToEdit(null);
+            setModalReadOnly(false);
             setFormOpen(true);
           }}
           className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover transition-all shadow-sm active:scale-[0.98]"
@@ -280,6 +283,7 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
                 key={d.id}
                 onClick={onRowClick(() => {
                   setToEdit(d);
+                  setModalReadOnly(true);
                   setFormOpen(true);
                 })}
                 title="Ouvrir le devis"
@@ -335,6 +339,7 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
                       type="button"
                       onClick={() => {
                         setToEdit(d);
+                        setModalReadOnly(false);
                         setFormOpen(true);
                       }}
                       className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-surface-muted transition-colors"
@@ -396,6 +401,7 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
           // autre devis réutiliserait le formulaire déjà monté et ses valeurs.
           key={toEdit?.id ?? "nouveau"}
           devis={toEdit}
+          readOnly={modalReadOnly}
           initialLeadId={toEdit ? (toEdit.lead_id ?? null) : prefilledLeadId}
           onClose={() => {
             setFormOpen(false);

@@ -90,6 +90,8 @@ export function ToursTable({ initialTours }: ToursTableProps) {
   // Modals state
   const [modalOpen, setModalOpen] = useState(false);
   const [tourToEdit, setTourToEdit] = useState<Tour | null>(null);
+  // Un clic sur la ligne consulte ; le crayon modifie.
+  const [modalReadOnly, setModalReadOnly] = useState(false);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tourToDelete, setTourToDelete] = useState<Tour | null>(null);
@@ -152,11 +154,20 @@ export function ToursTable({ initialTours }: ToursTableProps) {
   // Modal open helpers
   const handleCreateNew = () => {
     setTourToEdit(null);
+    setModalReadOnly(false);
     setModalOpen(true);
   };
 
   const handleEdit = (tour: Tour) => {
     setTourToEdit(tour);
+    setModalReadOnly(false);
+    setModalOpen(true);
+  };
+
+  /** Clic sur la ligne : consultation. */
+  const handleView = (tour: Tour) => {
+    setTourToEdit(tour);
+    setModalReadOnly(true);
     setModalOpen(true);
   };
 
@@ -436,7 +447,7 @@ export function ToursTable({ initialTours }: ToursTableProps) {
                   return (
                     <tr
                       key={tour.id}
-                      onClick={onRowClick(() => handleEdit(tour))}
+                      onClick={onRowClick(() => handleView(tour))}
                       title="Ouvrir la fiche de la visite"
                       className="hover:bg-surface-subtle/50 transition-colors group cursor-pointer"
                     >
@@ -626,6 +637,7 @@ export function ToursTable({ initialTours }: ToursTableProps) {
       <TourModal
         isOpen={modalOpen}
         tourToEdit={tourToEdit}
+        readOnly={modalReadOnly}
         onClose={() => {
           setModalOpen(false);
           setTourToEdit(null);
