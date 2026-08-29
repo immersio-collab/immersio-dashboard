@@ -24,7 +24,9 @@ export class PortfolioError extends Error {
   }
 }
 
-const PUBLISHED = "Published";
+// Publication : voir lib/publication.ts. Un projet « Published » daté du
+// futur est programmé, pas en ligne.
+import { onlyLive, todayISO, PUBLISHED } from "@/lib/publication";
 
 /**
  * Normalises `deliverables`, stored as jsonb.
@@ -82,9 +84,7 @@ export async function getPublishedProjects(
   language: PortfolioLanguage
 ): Promise<PortfolioProject[]> {
   const rows = await selectRows((q) =>
-    q
-      .eq("language", language)
-      .eq("status", PUBLISHED)
+    onlyLive(q.eq("language", language), "published_at")
       .order("published_at", { ascending: false })
       // Tie-break: several projects share a date and Postgres returns ties in
       // physical order, which is not stable across queries.
@@ -105,7 +105,7 @@ export async function getProjectBySlug(
   language: PortfolioLanguage
 ): Promise<PortfolioProject | null> {
   const rows = await selectRows((q) =>
-    q.eq("slug", slug.trim()).eq("language", language).eq("status", PUBLISHED).limit(1)
+    onlyLive(q.eq("slug", slug.trim()).eq("language", language), "published_at").limit(1)
   );
   const row = rows[0];
   if (!row) return null;
@@ -117,6 +117,7 @@ export async function getProjectBySlug(
       q
         .eq("linked_topic_id", row.linked_topic_id)
         .eq("status", PUBLISHED)
+        .or(`published_at.is.null,published_at.lte.${todayISO()}`)
         .neq("language", row.language)
         .limit(1)
     );
@@ -140,7 +141,8 @@ export async function getAllSlugs(): Promise<PortfolioSlugEntry[]> {
   const { data, error } = await supabase
     .from("portfolio_projects")
     .select("slug, language, linked_topic_id, updated_at, archived")
-    .eq("status", PUBLISHED);
+    .eq("status", PUBLISHED)
+    .or(`published_at.is.null,published_at.lte.${todayISO()}`);
 
   if (error) throw new PortfolioError(`Supabase error: ${error.message}`);
 

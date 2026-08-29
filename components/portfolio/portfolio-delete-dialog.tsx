@@ -2,22 +2,30 @@
 
 import { AlertTriangle, X } from "lucide-react";
 import type { PortfolioProjectRecord } from "@/types";
+import type { Pair } from "@/lib/pairing";
 
+/**
+ * Confirmation d'archivage d'un projet.
+ *
+ * Le projet est archivé dans ses deux langues : c'est un seul contenu, et
+ * n'en retirer qu'une moitié laisserait la version survivante se déclarer
+ * traduite d'une page devenue 404.
+ */
 export function PortfolioDeleteDialog({
-  project,
+  pair,
   isDeleting,
   onConfirm,
   onCancel,
 }: {
-  project: PortfolioProjectRecord | null;
+  pair: Pair<PortfolioProjectRecord> | null;
   isDeleting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  if (!project) return null;
+  if (!pair) return null;
 
-  const locale = project.language === "French" ? "fr" : "en";
-  const publicPath = project.language === "French" ? "portfolio" : "our-work";
+  const sides = [pair.fr, pair.en].filter(Boolean) as PortfolioProjectRecord[];
+  const main = sides[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
@@ -28,7 +36,7 @@ export function PortfolioDeleteDialog({
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold text-text">Archiver ce projet ?</h2>
-            <p className="text-xs text-text-muted mt-1 break-words">{project.name}</p>
+            <p className="text-xs text-text-muted mt-1 break-words">{main.name}</p>
           </div>
           <button
             type="button"
@@ -41,23 +49,25 @@ export function PortfolioDeleteDialog({
         </div>
 
         <div className="p-5 space-y-3">
-          {/* Archiver = soft-delete : conservé dans Supabase, retiré du
-              dashboard, du site et du sitemap. L'URL publique devient une 404. */}
           <p className="text-xs text-text-muted leading-relaxed">
-            Le projet sera <strong className="text-text">archivé</strong> : il reste conservé
-            dans Supabase mais disparaît du dashboard et du site. L&apos;URL{" "}
-            <span className="text-accent break-all">
-              /{locale}/{publicPath}/{project.slug}
-            </span>{" "}
-            est référencée par Google et deviendra une 404.
+            Le projet sera <strong className="text-text">archivé</strong> dans{" "}
+            {sides.length > 1 ? "ses deux langues" : "sa seule langue"} : il reste conservé dans
+            Supabase mais disparaît du dashboard, du site et du sitemap.
           </p>
-          {/* Deleting one half of a pair also strips the survivor's hreflang. */}
+
+          <ul className="space-y-1">
+            {sides.map((p) => (
+              <li key={p.id} className="text-xs text-text-muted leading-relaxed">
+                <span className="text-accent break-all">
+                  /{p.language === "French" ? "fr/portfolio" : "en/our-work"}/{p.slug}
+                </span>{" "}
+                deviendra une 404.
+              </li>
+            ))}
+          </ul>
+
           <p className="text-xs text-text-muted leading-relaxed">
-            Sa version dans l&apos;autre langue perdra aussi sa balise hreflang et se retrouvera
-            déclarée sans traduction.
-          </p>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Pour retirer le projet du site sans casser son référencement, passe plutôt son statut en{" "}
+            Pour retirer le projet du site sans l&apos;archiver, passe plutôt son statut en{" "}
             <strong className="text-text">Brouillon</strong>.
           </p>
         </div>

@@ -255,14 +255,26 @@ export default async function DashboardIndexPage() {
             value={indispo("blog") ? "—" : modules.blogBrouillons}
             icon={FileText}
             href="/dashboard/blog"
-            sub={indispo("blog") ? "Module indisponible" : "À publier"}
+            sub={
+              indispo("blog")
+                ? "Module indisponible"
+                : modules.blogProgrammes > 0
+                  ? `À publier · ${modules.blogProgrammes} programmé${modules.blogProgrammes > 1 ? "s" : ""}`
+                  : "À publier"
+            }
           />
           <StatCard
             label="Projets non publiés"
             value={indispo("portfolio") ? "—" : modules.portfolioBrouillons}
             icon={FolderOpen}
             href="/dashboard/portfolio"
-            sub={indispo("portfolio") ? "Module indisponible" : "À publier"}
+            sub={
+              indispo("portfolio")
+                ? "Module indisponible"
+                : modules.portfolioProgrammes > 0
+                  ? `À publier · ${modules.portfolioProgrammes} programmé${modules.portfolioProgrammes > 1 ? "s" : ""}`
+                  : "À publier"
+            }
           />
           <StatCard
             label="Visites hors ligne"

@@ -11,8 +11,12 @@
  */
 
 import { getSupabaseClient } from "@/lib/supabase";
+import { todayISO } from "@/lib/publication";
 
 export interface ModuleStats {
+  /** Contenus datés du futur, qui partiront seuls. */
+  blogProgrammes: number;
+  portfolioProgrammes: number;
   /** Devis en attente de réponse client, et leur montant cumulé. */
   devisEnAttente: number;
   devisMontantEnAttente: number;
@@ -27,6 +31,8 @@ export interface ModuleStats {
 }
 
 const EMPTY: ModuleStats = {
+  blogProgrammes: 0,
+  portfolioProgrammes: 0,
   devisEnAttente: 0,
   devisMontantEnAttente: 0,
   devisAcceptesMontant: 0,
@@ -72,6 +78,16 @@ export async function getModuleStats(): Promise<ModuleStats> {
           .eq("archived", false),
     ],
     [
+      "blogProgrammes",
+      () =>
+        supabase
+          .from("blog_posts")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "Published")
+          .eq("archived", false)
+          .gt("published_date", todayISO()),
+    ],
+    [
       "portfolio",
       () =>
         supabase
@@ -79,6 +95,16 @@ export async function getModuleStats(): Promise<ModuleStats> {
           .select("*", { count: "exact", head: true })
           .neq("status", "Published")
           .eq("archived", false),
+    ],
+    [
+      "portfolioProgrammes",
+      () =>
+        supabase
+          .from("portfolio_projects")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "Published")
+          .eq("archived", false)
+          .gt("published_at", todayISO()),
     ],
     [
       "tours",
@@ -109,7 +135,9 @@ export async function getModuleStats(): Promise<ModuleStats> {
       continue;
     }
     if (name === "blog") stats.blogBrouillons = count;
+    if (name === "blogProgrammes") stats.blogProgrammes = count;
     if (name === "portfolio") stats.portfolioBrouillons = count;
+    if (name === "portfolioProgrammes") stats.portfolioProgrammes = count;
     if (name === "tours") stats.toursInactifs = count;
   }
 

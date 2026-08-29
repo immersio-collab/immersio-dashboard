@@ -24,7 +24,10 @@ export class BlogError extends Error {
   }
 }
 
-const PUBLISHED = "Published";
+// Publication : voir lib/publication.ts. Un contenu « Published » daté du
+// futur est programmé, pas en ligne — d'où onlyLive() plutôt qu'un simple
+// filtre sur le statut.
+import { onlyLive, todayISO, PUBLISHED } from "@/lib/publication";
 
 /**
  * Turns a stored row into the payload the site expects.
@@ -81,9 +84,7 @@ async function selectRows(filter: (q: any) => any): Promise<BlogPostRecord[]> {
  */
 export async function getPublishedPosts(language: BlogLanguage): Promise<BlogPost[]> {
   const rows = await selectRows((q) =>
-    q
-      .eq("language", language)
-      .eq("status", PUBLISHED)
+    onlyLive(q.eq("language", language), "published_date")
       .order("published_date", { ascending: false })
       .order("slug", { ascending: true })
   );
@@ -99,7 +100,9 @@ export async function getPublishedPosts(language: BlogLanguage): Promise<BlogPos
  * French and English versions compete for the same query.
  */
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  const rows = await selectRows((q) => q.eq("slug", slug.trim()).eq("status", PUBLISHED).limit(1));
+  const rows = await selectRows((q) =>
+    onlyLive(q.eq("slug", slug.trim()), "published_date").limit(1)
+  );
   const row = rows[0];
   if (!row) return null;
 
@@ -107,9 +110,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
 
   if (row.linked_topic_id) {
     const siblings = await selectRows((q) =>
-      q
-        .eq("linked_topic_id", row.linked_topic_id)
-        .eq("status", PUBLISHED)
+      onlyLive(q.eq("linked_topic_id", row.linked_topic_id), "published_date")
         .neq("language", row.language)
         .limit(1)
     );
@@ -133,7 +134,8 @@ export async function getAllSlugs(): Promise<BlogSlugEntry[]> {
   const { data, error } = await supabase
     .from("blog_posts")
     .select("slug, language, updated_at, linked_topic_id, archived")
-    .eq("status", PUBLISHED);
+    .eq("status", PUBLISHED)
+    .or(`published_date.is.null,published_date.lte.${todayISO()}`);
 
   if (error) throw new BlogError(`Supabase error: ${error.message}`);
 

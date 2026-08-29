@@ -41,6 +41,7 @@ import { LeadDetailCard } from "@/components/leads/lead-detail-card";
 import { LeadCreateModal } from "@/components/leads/lead-create-modal";
 import { RelanceVariationsModal } from "@/components/leads/relance-variations-modal";
 import { ExportCsvButton, Pagination, usePagination } from "@/components/table";
+import { CellViewer, ExpandableCell, useCellViewer } from "@/components/table/cell";
 import type { CsvColumn } from "@/lib/csv";
 
 /** Colonnes de l'export — le pipeline commercial complet d'un lead. */
@@ -473,6 +474,7 @@ export function LeadsTable({
   ]);
 
   const pager = usePagination(displayedLeads);
+  const viewer = useCellViewer();
 
   // Count leads with active rappels
   const rappelsCount = useMemo(
@@ -1143,8 +1145,16 @@ export function LeadsTable({
                           )}
                         </td>
                         {/* Ville */}
-                        <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-text-muted text-xs truncate max-w-[60px] sm:max-w-none">
-                          {lead.ville || "—"}
+                        <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-text-muted text-xs max-w-[60px] sm:max-w-none">
+                          <ExpandableCell
+                            label="Ville"
+                            value={lead.ville}
+                            context={lead.nom ?? undefined}
+                            onOpen={viewer.open}
+                            className="block truncate w-full"
+                          >
+                            {lead.ville || "—"}
+                          </ExpandableCell>
                         </td>
                         {/* Date formulaire */}
                         <td className="hidden sm:table-cell px-2 sm:px-3 py-2 sm:py-2.5 text-text-muted tabular-nums whitespace-nowrap text-xs">
@@ -1233,6 +1243,8 @@ export function LeadsTable({
           </div>
         )}
       </div>
+
+      <CellViewer cell={viewer.cell} onClose={viewer.close} />
 
       {/* ── Create Modal ── */}
       {isCreateOpen && (
