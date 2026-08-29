@@ -16,12 +16,12 @@ import { PortfolioModal } from "./portfolio-modal";
 import { PortfolioDeleteDialog } from "./portfolio-delete-dialog";
 import {
   ExportCsvButton,
+  onRowClick,
   Pagination,
   SortHeader,
   usePagination,
   useSort,
 } from "@/components/table";
-import { CellViewer, ExpandableCell, useCellViewer } from "@/components/table/cell";
 import type { CsvColumn } from "@/lib/csv";
 import { pairByTopic, primary, languagesOf, type Pair } from "@/lib/pairing";
 import { getPublicationState, PUBLICATION_LABELS, PUBLICATION_STYLES } from "@/lib/publication";
@@ -72,7 +72,6 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
   const [toDelete, setToDelete] = useState<PfPair | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const viewer = useCellViewer();
 
   function notify(message: string) {
     setToast(message);
@@ -275,20 +274,18 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
               const main = primary(pair);
               const langs = languagesOf(pair);
               const state = getPublicationState(main.status, main.published_at);
-              const context = main.name;
               return (
                 <tr
                   key={pair.key}
-                  className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors"
+                  onClick={onRowClick(() => {
+                    setEditing(pair);
+                    setModalOpen(true);
+                  })}
+                  title="Ouvrir la fiche du projet"
+                  className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors cursor-pointer"
                 >
                   <td className="px-3 py-2 max-w-[320px]">
-                    <ExpandableCell
-                      label="Projet"
-                      value={main.name}
-                      context={context}
-                      onOpen={viewer.open}
-                      className="font-medium text-text block truncate w-full"
-                    />
+                    <div className="font-medium text-text truncate">{main.name}</div>
                     {/* Le slug de chaque langue : ils diffèrent souvent, et
                         leur présence dit déjà quelles langues existent. */}
                     <div className="text-text-subtle font-mono text-[11px] truncate">
@@ -388,8 +385,6 @@ export function PortfolioTable({ initialProjects }: { initialProjects: Portfolio
         onChange={pager.setPage}
         noun="projet"
       />
-
-      <CellViewer cell={viewer.cell} onClose={viewer.close} />
 
       <PortfolioModal
         pair={editing}

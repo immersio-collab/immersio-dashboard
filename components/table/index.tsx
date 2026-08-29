@@ -214,6 +214,33 @@ export function Pagination({
 }
 
 // ---------------------------------------------------------------------------
+// Ligne cliquable
+// ---------------------------------------------------------------------------
+
+/**
+ * Ouvre la fiche quand on clique la ligne, sauf sur un élément qui a sa
+ * propre action.
+ *
+ * Poser un `stopPropagation` sur chaque bouton, lien, select et interrupteur
+ * d'une ligne se serait oublié au premier ajout ; on inspecte plutôt l'arbre
+ * remonté depuis la cible. Une sélection de texte en cours n'est pas un clic
+ * non plus : copier une valeur à la souris ne doit pas ouvrir la fiche.
+ *
+ * Le clavier passe par le bouton « Modifier » de la colonne Actions, qui
+ * ouvre la même fiche : rendre chaque ligne focalisable ajouterait vingt-cinq
+ * arrêts de tabulation avant d'atteindre la pagination, pour un chemin qui
+ * existe déjà.
+ */
+export function onRowClick(action: () => void) {
+  return (e: React.MouseEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("button, a, select, input, textarea, label, [role='switch']")) return;
+    if (window.getSelection()?.toString()) return;
+    action();
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Confirmation
 // ---------------------------------------------------------------------------
 

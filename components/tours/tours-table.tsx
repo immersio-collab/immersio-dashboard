@@ -23,11 +23,11 @@ import { TourModal } from "./tour-modal";
 import { TourDeleteDialog } from "./tour-delete-dialog";
 import {
   ExportCsvButton,
+  onRowClick,
   Pagination,
   usePagination,
   useSort,
 } from "@/components/table";
-import { CellViewer, ExpandableCell, useCellViewer } from "@/components/table/cell";
 import type { CsvColumn } from "@/lib/csv";
 
 type TourSortKey = "property_name" | "client_name" | "sector" | "slug" | "active" | "created_at";
@@ -98,7 +98,6 @@ export function ToursTable({ initialTours }: ToursTableProps) {
   // Copied feedback states (key: `${tourId}-${type}`)
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const viewer = useCellViewer();
 
   // Trigger toast
   const showToast = (message: string) => {
@@ -437,18 +436,19 @@ export function ToursTable({ initialTours }: ToursTableProps) {
                   return (
                     <tr
                       key={tour.id}
-                      className="hover:bg-surface-subtle/50 transition-colors group"
+                      onClick={onRowClick(() => handleEdit(tour))}
+                      title="Ouvrir la fiche de la visite"
+                      className="hover:bg-surface-subtle/50 transition-colors group cursor-pointer"
                     >
                       {/* 1. Property Name with ellipsis */}
                       <td className="py-2 px-3 font-medium text-text max-w-[200px]">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <ExpandableCell
-                            label="Bien"
-                            value={tour.property_name}
-                            context={tour.client_name ?? undefined}
-                            onOpen={viewer.open}
+                          <span
                             className="truncate text-xs text-text block flex-1"
-                          />
+                            title={tour.property_name}
+                          >
+                            {tour.property_name}
+                          </span>
                           {tour.realsee_url && (
                             <a
                               href={tour.realsee_url}
@@ -465,15 +465,12 @@ export function ToursTable({ initialTours }: ToursTableProps) {
 
                       {/* 2. Client Name with ellipsis */}
                       <td className="py-2 px-3 text-text-muted text-xs max-w-[140px]">
-                        <ExpandableCell
-                          label="Client"
-                          value={tour.client_name}
-                          context={tour.property_name}
-                          onOpen={viewer.open}
-                          className="truncate block w-full"
+                        <span
+                          className="truncate block"
+                          title={tour.client_name || "Non renseigné"}
                         >
                           {tour.client_name || <span className="text-text-subtle">—</span>}
-                        </ExpandableCell>
+                        </span>
                       </td>
 
                       {/* 3. Sector (never wraps) */}
@@ -484,13 +481,12 @@ export function ToursTable({ initialTours }: ToursTableProps) {
                       {/* 4. Slug & Immersio Link with ellipsis */}
                       <td className="py-2 px-3 max-w-[160px]">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <ExpandableCell
-                            label="Slug"
-                            value={tour.slug}
-                            context={tour.property_name}
-                            onOpen={viewer.open}
+                          <code
                             className="text-[11px] text-accent font-mono bg-accent/5 px-1.5 py-0.5 rounded border border-accent/15 truncate block flex-1"
-                          />
+                            title={tour.slug}
+                          >
+                            {tour.slug}
+                          </code>
                           <a
                             href={immersioUrl}
                             target="_blank"
@@ -645,8 +641,6 @@ export function ToursTable({ initialTours }: ToursTableProps) {
         onChange={pager.setPage}
         noun="visite"
       />
-
-      <CellViewer cell={viewer.cell} onClose={viewer.close} />
 
       {/* Delete Confirmation Dialog */}
       <TourDeleteDialog

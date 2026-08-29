@@ -12,12 +12,12 @@ import { devisDataFromRecord } from "@/lib/devis-record";
 import {
   ConfirmDialog,
   ExportCsvButton,
+  onRowClick,
   Pagination,
   SortHeader,
   usePagination,
   useSort,
 } from "@/components/table";
-import { CellViewer, ExpandableCell, useCellViewer } from "@/components/table/cell";
 import type { CsvColumn } from "@/lib/csv";
 import { DevisForm } from "./devis-form";
 
@@ -63,7 +63,6 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
   const [formOpen, setFormOpen] = useState(false);
   const [toEdit, setToEdit] = useState<DevisRecord | null>(null);
   const [toArchive, setToArchive] = useState<DevisRecord | null>(null);
-  const viewer = useCellViewer();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -277,36 +276,26 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
             )}
 
             {pager.slice.map((d) => (
-              <tr key={d.id} className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors">
+              <tr
+                key={d.id}
+                onClick={onRowClick(() => {
+                  setToEdit(d);
+                  setFormOpen(true);
+                })}
+                title="Ouvrir le devis"
+                className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors cursor-pointer"
+              >
                 <td className="px-3 py-2 whitespace-nowrap font-mono text-[11px] text-text">{d.devis_number}</td>
                 <td className="px-3 py-2 max-w-[220px]">
-                  <ExpandableCell
-                    label="Client"
-                    value={d.client_nom}
-                    context={d.devis_number}
-                    onOpen={viewer.open}
-                    className="font-medium text-text block truncate w-full"
-                  />
-                  <ExpandableCell
-                    label="Coordonnées"
-                    value={[d.client_ville, d.client_tel, d.client_email].filter(Boolean).join(" · ")}
-                    context={d.client_nom}
-                    onOpen={viewer.open}
-                    className="text-text-subtle block truncate text-[11px] w-full"
-                  >
+                  <div className="font-medium text-text truncate">{d.client_nom}</div>
+                  <div className="text-text-subtle truncate text-[11px]">
                     {[d.client_ville, d.client_tel].filter(Boolean).join(" · ") || "—"}
-                  </ExpandableCell>
+                  </div>
                 </td>
                 <td className="px-3 py-2 max-w-[180px] text-text-muted">
-                  <ExpandableCell
-                    label="Bien"
-                    value={[d.type_bien, d.superficie].filter(Boolean).join(" · ")}
-                    context={d.devis_number}
-                    onOpen={viewer.open}
-                    className="block truncate w-full"
-                  >
+                  <div className="truncate">
                     {[d.type_bien, d.superficie].filter(Boolean).join(" · ") || "—"}
-                  </ExpandableCell>
+                  </div>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap text-right font-semibold text-text tabular-nums">
                   {fmt(Number(d.total_ttc || 0))} MAD
@@ -378,8 +367,6 @@ export function DevisTable({ initialDevis }: { initialDevis: DevisRecord[] }) {
         onChange={pager.setPage}
         noun="devis"
       />
-
-      <CellViewer cell={viewer.cell} onClose={viewer.close} />
 
       <ConfirmDialog
         open={!!toArchive}

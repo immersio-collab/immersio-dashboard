@@ -7,12 +7,12 @@ import { BlogModal } from "./blog-modal";
 import { BlogDeleteDialog } from "./blog-delete-dialog";
 import {
   ExportCsvButton,
+  onRowClick,
   Pagination,
   SortHeader,
   usePagination,
   useSort,
 } from "@/components/table";
-import { CellViewer, ExpandableCell, useCellViewer } from "@/components/table/cell";
 import type { CsvColumn } from "@/lib/csv";
 import { pairByTopic, primary, languagesOf, type Pair } from "@/lib/pairing";
 import { getPublicationState, PUBLICATION_LABELS, PUBLICATION_STYLES } from "@/lib/publication";
@@ -53,7 +53,6 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
   const [toDelete, setToDelete] = useState<BlogPair | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const viewer = useCellViewer();
 
   function notify(message: string) {
     setToast(message);
@@ -246,16 +245,15 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
               return (
                 <tr
                   key={pair.key}
-                  className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors"
+                  onClick={onRowClick(() => {
+                    setEditing(pair);
+                    setModalOpen(true);
+                  })}
+                  title="Ouvrir la fiche de l'article"
+                  className="border-b border-border last:border-0 hover:bg-surface-muted/50 transition-colors cursor-pointer"
                 >
                   <td className="px-3 py-2 max-w-[360px]">
-                    <ExpandableCell
-                      label="Titre de l'article"
-                      value={main.name}
-                      context={main.category_label ?? undefined}
-                      onOpen={viewer.open}
-                      className="font-medium text-text block truncate w-full"
-                    />
+                    <div className="font-medium text-text truncate">{main.name}</div>
                     <div className="text-text-subtle font-mono text-[11px] truncate">
                       {pair.fr && <span title="Slug français">/{pair.fr.slug}</span>}
                       {pair.fr && pair.en && <span className="mx-1 opacity-50">·</span>}
@@ -355,8 +353,6 @@ export function BlogTable({ initialPosts }: { initialPosts: BlogPostRecord[] }) 
         onChange={pager.setPage}
         noun="article"
       />
-
-      <CellViewer cell={viewer.cell} onClose={viewer.close} />
 
       <BlogModal
         pair={editing}
