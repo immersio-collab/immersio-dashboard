@@ -127,13 +127,6 @@ export interface Livrable {
 export const LIVRABLES: ReadonlyArray<Livrable> = [
   { id: "visite3d", fr: "Visite 3D", en: "3D Tour", facturable: false },
   {
-    id: "photos",
-    fr: "Photos HD extraites du tour",
-    en: "HD Photos from the tour",
-    desc: "Sélection de photographies professionnelles HD extraites de la visite",
-    facturable: true,
-  },
-  {
     id: "plan2d",
     fr: "Plan 2D / Floor Plan",
     en: "2D Floor Plan",
