@@ -112,22 +112,73 @@ export interface Livrable {
   id: string;
   fr: string;
   en: string;
+  /**
+   * Description imprimée sous l'option dans le PDF du devis. Vide pour ce qui
+   * n'est pas une option facturable.
+   */
+  desc?: string;
+  /**
+   * false pour la visite elle-même : elle est le produit, pas une option à
+   * cocher dans un devis. Elle reste un livrable affichable au portfolio.
+   */
+  facturable?: boolean;
 }
 
 export const LIVRABLES: ReadonlyArray<Livrable> = [
-  { id: "visite3d", fr: "Visite 3D", en: "3D Tour" },
-  { id: "photos", fr: "Photos HD extraites du tour", en: "HD Photos from the tour" },
-  { id: "plan2d", fr: "Plan 2D / Floor Plan", en: "2D Floor Plan" },
-  { id: "tags", fr: "Points interactifs", en: "Interactive tags" },
-  { id: "branding", fr: "Branding Personnalisé", en: "Custom Branding" },
+  { id: "visite3d", fr: "Visite 3D", en: "3D Tour", facturable: false },
+  {
+    id: "photos",
+    fr: "Photos HD extraites du tour",
+    en: "HD Photos from the tour",
+    desc: "Sélection de photographies professionnelles HD extraites de la visite",
+    facturable: true,
+  },
+  {
+    id: "plan2d",
+    fr: "Plan 2D / Floor Plan",
+    en: "2D Floor Plan",
+    desc: "Plan d'architecte 2D de l'espace avec mesures et agencement",
+    facturable: true,
+  },
+  {
+    id: "tags",
+    fr: "Points interactifs",
+    en: "Interactive tags",
+    desc: "Points d'intérêt cliquables (textes, images et liens d'information)",
+    facturable: true,
+  },
+  {
+    id: "branding",
+    fr: "Branding Personnalisé",
+    en: "Custom Branding",
+    desc: "Intégration de votre logo, couleurs et coordonnées dans l'interface",
+    facturable: true,
+  },
   {
     id: "gmaps",
     fr: "Publication Google Maps (Google Business Profile)",
     en: "Google Maps Publication (Google Business Profile)",
+    desc: "Publication directe de la visite sur Google Maps et Street View",
+    facturable: true,
   },
-  { id: "integration", fr: "Intégration sur site web", en: "Website integration" },
-  { id: "guide", fr: "Guide d'intégration", en: "Integration guide" },
+  {
+    id: "integration",
+    fr: "Intégration sur site web",
+    en: "Website integration",
+    desc: "Intégration facile sur votre site web (WordPress, Wix ou sur-mesure)",
+    facturable: true,
+  },
+  {
+    id: "guide",
+    fr: "Guide d'intégration",
+    en: "Integration guide",
+    desc: "Guide complet avec liens et modèles de partage sur WhatsApp et réseaux sociaux.",
+    facturable: true,
+  },
 ] as const;
+
+/** Les livrables vendus en option dans un devis — la visite en est exclue. */
+export const LIVRABLES_FACTURABLES = LIVRABLES.filter((l) => l.facturable);
 
 // ---------------------------------------------------------------------------
 // Listes propres aux leads (statuts, canaux) — centralisées ici pour mettre

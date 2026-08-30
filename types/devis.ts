@@ -6,7 +6,7 @@
  * columns so the existing rows can be imported without a mapping table.
  */
 
-import { SECTEURS, SUPERFICIES } from "./vocabulaire";
+import { SECTEURS, SUPERFICIES, LIVRABLES_FACTURABLES } from "./vocabulaire";
 
 export type DevisStatut = "En attente" | "Accepté" | "Refusé";
 
@@ -36,48 +36,17 @@ export const SUPERFICIE_OPTIONS: ReadonlyArray<{
 }> = SUPERFICIES.map((s) => ({ value: s.value, label: s.label, coef: s.coef }));
 
 /**
- * Add-on options. `label` and `desc` are printed verbatim in the PDF, so they
- * are data rather than UI copy — changing one changes every future quotation.
+ * Options vendues dans un devis, dérivées du vocabulaire partagé.
+ *
+ * `label` et `desc` sont imprimés tels quels dans le PDF : ce sont des
+ * données, pas de la formulation d'interface — en changer un change toutes
+ * les prochaines offres. La liste vivait ici en double de LIVRABLES, ce qui
+ * laissait le devis et le portfolio nommer différemment la même prestation.
  */
-export const DEVIS_OPTIONS = [
-  {
-    id: "photos",
-    label: "Photos HD extraites du tour",
-    desc: "Sélection de photographies professionnelles HD extraites de la visite",
-  },
-  {
-    id: "plan2d",
-    label: "Plan 2D / Floor Plan",
-    desc: "Plan d'architecte 2D de l'espace avec mesures et agencement",
-  },
-  {
-    id: "tags",
-    label: "Points interactifs",
-    desc: "Points d'intérêt cliquables (textes, images et liens d'information)",
-  },
-  {
-    id: "branding",
-    label: "Branding Personnalisé",
-    desc: "Intégration de votre logo, couleurs et coordonnées dans l'interface",
-  },
-  {
-    id: "gmaps",
-    label: "Publication Google Maps (Google Business Profile)",
-    desc: "Publication directe de la visite sur Google Maps et Street View",
-  },
-  {
-    id: "integration",
-    label: "Intégration sur site web",
-    desc: "Intégration facile sur votre site web (WordPress, Wix ou sur-mesure)",
-  },
-  {
-    id: "guide",
-    label: "Guide d'intégration",
-    desc: "Guide complet avec liens et modèles de partage sur WhatsApp et réseaux sociaux.",
-  },
-] as const;
+export const DEVIS_OPTIONS: ReadonlyArray<{ id: string; label: string; desc: string }> =
+  LIVRABLES_FACTURABLES.map((l) => ({ id: l.id, label: l.fr, desc: l.desc ?? "" }));
 
-export type DevisOptionId = (typeof DEVIS_OPTIONS)[number]["id"];
+export type DevisOptionId = string;
 
 /**
  * Hosting durations.
